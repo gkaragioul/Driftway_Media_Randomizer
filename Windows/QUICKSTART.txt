@@ -1,0 +1,26 @@
+# PriveRandomizer - Portable Windows App
+
+## Quick Start
+
+Double-click `PriveRandomizer.exe` to launch!
+
+## Keyboard Controls
+- **→** Next
+- **←** Previous  
+- **Space** Next
+
+## Features
+✓ Folder selection
+✓ Recursive media search
+✓ Random playback
+✓ Delete to recycle bin
+✓ Personalized modes
+✓ No installation needed
+
+## Supported Files
+Images: JPG, PNG, GIF, BMP, WEBP, TIFF
+Videos: MP4, AVI, MKV, MOV, WMV, FLV, WEBM
+
+---
+
+For full documentation, see README.md

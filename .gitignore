@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# PyInstaller build artifacts
+Windows/build/
+Windows/dist/
+*.spec.bak
+
+# Test artifacts
+Windows/VLCTest.spec
+
+# macOS build
+.build/
+PriveRandomizer.app/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / Claude
+.claude/
