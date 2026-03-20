@@ -1,113 +1,90 @@
-# PriveRandomizer - Windows Portable Edition
+# PriveRandomizer — Windows Portable Edition
 
 A modern Windows application to randomly view images and videos from a selected folder and its subfolders.
 
-## ✨ Features
+## Features
 
-- **Folder Selection**: Choose any folder on your computer to scan for media
-- **Recursive Search**: Automatically scans all subfolders for images and videos
-- **Random Playback**: Displays media in random order with multiple randomization modes
-- **Keyboard Navigation**: Easy navigation with arrow keys
-- **Delete to Recycle Bin**: Remove unwanted files directly to the recycle bin
-- **Persistent Settings**: Remembers your last selected folder and preferences
-- **Modern UI**: Clean, dark interface optimized for media viewing
-- **No Installation Required**: Portable executable - just run and go!
+- **Folder Selection**: Choose any folder to scan for media (recursive)
+- **Instant Delete**: Press Delete key or click the button — no confirmation dialog, straight to Recycle Bin
+- **Randomized Playback**: Two modes — Global Shuffle and Folder-Balanced
+- **Keyboard Navigation**: Arrow keys and spacebar
+- **Video Playback**: Auto-looping via bundled VLC
+- **Crash Logs**: On any crash, a `PriveRandomizer_crash_*.log` file is written to your Desktop
+- **Persistent Settings**: Remembers last folder and mode between sessions
+- **No Installation Required**: Single portable `.exe`
 
-## 🎮 Keyboard Controls
+## Keyboard Controls
 
 | Key | Action |
-|-----|--------|
-| **→** (Right Arrow) | Next media |
-| **←** (Left Arrow) | Previous media |
+|---|---|
+| **→** Right Arrow | Next media |
+| **←** Left Arrow | Previous media |
 | **Space** | Next media |
+| **Delete** | Move current file to Recycle Bin |
 
-## 🚀 Getting Started
+## Getting Started
 
-1. **Double-click** `PriveRandomizer.exe` to launch the application
-2. Click **"📁 Select Folder"** to choose a folder with images and videos
-3. The app will scan the folder and display media randomly
-4. Use arrow keys or spacebar to navigate through your media
+1. Double-click `PriveRandomizer.exe`
+2. Click **Select Folder** to pick a folder with images/videos
+3. Navigate with arrow keys or spacebar
+4. Press **Delete** to instantly remove a file
 
-## 🎯 Supported Media Formats
+## Supported Formats
 
-### Images
-- `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.webp`, `.tiff`, `.ico`
+**Images**: `.jpg` `.jpeg` `.png` `.gif` `.bmp` `.webp` `.tiff` `.ico`
 
-### Videos
-- `.mp4`, `.avi`, `.mkv`, `.mov`, `.wmv`, `.flv`, `.webm`, `.m4v`, `.3gp`
+**Videos**: `.mp4` `.avi` `.mkv` `.mov` `.wmv` `.flv` `.webm` `.m4v` `.3gp`
 
-## 🔧 Randomization Modes
+## Randomization Modes
 
-Click the **randomization mode button** to toggle between:
+Click the mode button in the toolbar to toggle:
 
-- **Global**: Shuffles all media items together
-- **Folder-Balanced**: Balances media from different subfolders
+- **Global**: All files shuffled together using OS-entropy seeding (two independent passes)
+- **Folder-Balanced**: Each folder is shuffled independently, then folders are interleaved round-robin so every folder gets equal screen time
 
-## 📁 Configuration
+## Crash Logging
 
-Settings are automatically saved in your user directory:
-- **Config File**: `~/.prive_randomizer_config.json`
+If the app crashes unexpectedly, look on your Desktop for a file named:
 
-This file stores:
+```
+PriveRandomizer_crash_YYYY-MM-DD_HH-MM-SS.log
+```
+
+It contains the exception type, message, full traceback, Python version, and platform info.
+
+## Configuration
+
+Settings are saved automatically to `~/.prive_randomizer_config.json`:
+
 - Last selected folder
 - Preferred randomization mode
 
-You can manually delete this file to reset all settings.
+Delete this file to reset all settings.
 
-## 🛠️ System Requirements
+## System Requirements
 
-- **OS**: Windows 7 or later (10/11 recommended)
-- **Memory**: 500 MB RAM minimum
-- **Disk Space**: 50 MB for the application
+- **OS**: Windows 10 / 11 recommended (Windows 7+ supported)
+- **Memory**: 500 MB RAM
+- **Disk**: ~65 MB for the application
 
-## 🐛 Troubleshooting
+## Building from Source
 
-### App won't launch
-- Ensure you have Windows 7 or later
-- Check that you have sufficient disk space
-- Try running as Administrator
+```bash
+pip install PyQt5 python-vlc send2trash pyinstaller
+pyinstaller PriveRandomizer.spec --clean
+python deploy.py   # copies exe to Desktop
+```
 
-### Images won't display
-- Verify the image file is not corrupted
-- Check that the file format is supported
-- Ensure you have read permissions for the file
+## Troubleshooting
 
-### Delete function not working
-- The file may be in use by another application
-- Check that you have write permissions in the folder
-- Try closing the file in other applications first
+**App won't launch** — Try running as Administrator; check Windows Defender hasn't quarantined the exe.
 
-## 📝 Notes
+**Video won't play** — Ensure the file isn't corrupted; VLC codecs are bundled so no separate install is needed.
 
-- The application runs entirely offline - no internet connection required
-- All media remains on your computer - nothing is uploaded anywhere
-- The app respects hidden files if the folder contains any
+**Delete not working** — File may be open in another app, or you lack write permissions for that folder.
 
-## 🎨 About the Icon
-
-The application uses a custom icon featuring:
-- Play button (media playback)
-- Shuffle symbols (random selection)
-- Film strip (media content)
-
-## 📦 Portable Edition
-
-This is a fully portable Windows application. You can:
-- Copy it to any Windows computer
-- Run it from USB drives
-- Carry it on portable storage devices
-- No installation or registry modifications required
-
-## 📄 License & Credits
-
-**PriveRandomizer** - Private Media Randomizer
-- Originally developed as a macOS application in Swift
-- Converted to portable Windows application using Python and PyQt5
-- Built with PyInstaller for seamless portability
+**Crash on startup** — Check `~/.prive_randomizer_error.log` and any crash log on your Desktop for details.
 
 ---
 
-**Version**: 1.0 Windows Portable Edition
-**Release Date**: March 4, 2026
-
-Enjoy browsing your media collection randomly! 🎬📸
+**Version**: 1.1 — 2026-03-20

@@ -8,8 +8,11 @@ import sys
 import os
 import json
 import random
+import traceback
+import platform
 from pathlib import Path
 from enum import Enum
+from collections import defaultdict
 from typing import List, Optional, Dict
 from datetime import datetime
 
@@ -286,18 +289,49 @@ class PriveRandomizerApp(QMainWindow):
     
     def on_scan_finished(self, items: List[MediaItem]):
         """Handle scan completion"""
-        self.media_items = items
-        
-        # Apply randomization
-        if self.randomization_mode == RandomizationMode.GLOBAL_SHUFFLE:
-            random.shuffle(self.media_items)
-        
+        self.media_items = self._apply_randomization(items)
         self.current_index = 0
         self.info_label.setText(f"Loaded {len(self.media_items)} media files")
         self.delete_btn.setEnabled(True)
         self.save_settings()
-        
         self.display_current_media()
+
+    def _apply_randomization(self, items: List[MediaItem]) -> List[MediaItem]:
+        """Shuffle items according to the current randomization mode."""
+        if not items:
+            return items
+
+        if self.randomization_mode == RandomizationMode.FOLDER_BALANCED:
+            # Group by parent folder, shuffle within each folder, then
+            # interleave folders round-robin so every folder gets fair coverage
+            buckets: Dict[Path, List[MediaItem]] = defaultdict(list)
+            for item in items:
+                buckets[item.path.parent].append(item)
+
+            folder_lists = list(buckets.values())
+            for lst in folder_lists:
+                random.shuffle(lst)
+            random.shuffle(folder_lists)
+
+            result: List[MediaItem] = []
+            while folder_lists:
+                still_going = []
+                for lst in folder_lists:
+                    if lst:
+                        result.append(lst.pop(0))
+                    if lst:
+                        still_going.append(lst)
+                folder_lists = still_going
+            return result
+        else:
+            # GLOBAL_SHUFFLE: Fisher-Yates via random.shuffle with fresh entropy
+            shuffled = list(items)
+            random.seed(os.urandom(32))
+            random.shuffle(shuffled)
+            # Second pass with a different seed breaks up any accidental locality
+            random.seed(os.urandom(32))
+            random.shuffle(shuffled)
+            return shuffled
     
     def on_scan_error(self, error_message: str):
         """Handle scan error"""
@@ -398,44 +432,30 @@ class PriveRandomizerApp(QMainWindow):
             self.scan_folder()
     
     def delete_current_item(self):
-        """Delete current item to recycle bin"""
+        """Delete current item to recycle bin — no confirmation dialog."""
         if not self.media_items or self.current_index < 0:
             return
-        
+
         item = self.media_items[self.current_index]
-        
-        reply = QMessageBox.question(
-            self,
-            "Confirm Delete",
-            f"Move '{item.path.name}' to Recycle Bin?",
-            QMessageBox.Yes | QMessageBox.No
-        )
-        
-        if reply == QMessageBox.Yes:
+        try:
+            import send2trash
+            send2trash.send2trash(str(item.path))
+        except ImportError:
             try:
-                import send2trash
-                send2trash.send2trash(str(item.path))
-                self.media_items.pop(self.current_index)
-                
-                if not self.media_items:
-                    self.show_welcome_screen()
-                else:
-                    self.current_index = min(self.current_index, len(self.media_items) - 1)
-                    self.display_current_media()
-                
-                QMessageBox.information(self, "Success", "File moved to Recycle Bin")
-            except ImportError:
-                # Fallback if send2trash is not available
-                try:
-                    import winreg
-                    # Use Windows API to move to recycle bin
-                    os.system(f'del "{item.path}"')
-                    self.media_items.pop(self.current_index)
-                    self.display_current_media()
-                except Exception as e:
-                    QMessageBox.critical(self, "Error", f"Failed to delete file: {str(e)}")
+                os.remove(str(item.path))
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to delete file: {str(e)}")
+                return
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to delete file: {str(e)}")
+            return
+
+        self.media_items.pop(self.current_index)
+        if not self.media_items:
+            self.show_welcome_screen()
+        else:
+            self.current_index = min(self.current_index, len(self.media_items) - 1)
+            self.display_current_media()
     
     def setup_shortcuts(self):
         """Setup keyboard shortcuts"""
@@ -459,6 +479,8 @@ class PriveRandomizerApp(QMainWindow):
             self.show_next()
         elif event.key() == Qt.Key_Left:
             self.show_previous()
+        elif event.key() == Qt.Key_Delete:
+            self.delete_current_item()
         else:
             super().keyPressEvent(event)
     
@@ -506,8 +528,45 @@ class PriveRandomizerApp(QMainWindow):
         event.accept()
 
 
+def _install_crash_handler():
+    """Write a detailed crash log to the Desktop on any unhandled exception."""
+    desktop = Path.home() / "Desktop"
+
+    def handle_exception(exc_type, exc_value, exc_tb):
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        log_name = f"PriveRandomizer_crash_{timestamp}.log"
+        log_path = desktop / log_name
+
+        lines = [
+            "PriveRandomizer — Crash Report",
+            "=" * 50,
+            f"Time     : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Python   : {sys.version}",
+            f"Platform : {platform.platform()}",
+            f"Exe      : {sys.executable}",
+            "",
+            f"Exception Type    : {exc_type.__name__}",
+            f"Exception Message : {exc_value}",
+            "",
+            "Traceback (most recent call last):",
+            "".join(traceback.format_tb(exc_tb)),
+        ]
+
+        try:
+            with open(log_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines))
+        except Exception:
+            pass  # Never let the crash handler itself crash
+
+        sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+    sys.excepthook = handle_exception
+
+
 def main():
     """Main entry point"""
+    _install_crash_handler()
+
     # Redirect stderr to a log file for the windowed exe so crashes aren't silent
     log_path = Path.home() / ".prive_randomizer_error.log"
     try:
