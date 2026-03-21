@@ -4,7 +4,7 @@ GKMediaRandomizer - Windows app to randomly view images and videos
 Distributed as Inno Setup installer with auto-update from GitHub releases.
 """
 
-APP_VERSION = "2.1.0"
+APP_VERSION = "2.1.1"
 REPO_OWNER = "georgekgr12"
 REPO_NAME = "GKMediaRandomizer-releases"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
@@ -327,58 +327,111 @@ class UpdateDownloader(QThread):
 
 
 # ── About Dialog ─────────────────────────────────────────────
+EULA_TEXT = """\
+GKMediaRandomizer — Freeware License Agreement
+
+Copyright (c) 2026 George Karagioules. All rights reserved.
+
+IMPORTANT — READ CAREFULLY: This End-User License Agreement ("EULA") is a \
+legal agreement between you ("User") and George Karagioules ("Author") for \
+the use of GKMediaRandomizer ("Software").
+
+By installing, copying, or otherwise using the Software, you agree to be \
+bound by the terms of this EULA.
+
+1. GRANT OF LICENSE
+The Author grants you a non-exclusive, non-transferable, limited license \
+to install and use the Software free of charge for personal and commercial \
+purposes.
+
+2. RESTRICTIONS
+You may NOT:
+  (a) Modify, adapt, translate, reverse-engineer, decompile, or disassemble;
+  (b) Redistribute, sell, rent, lease, sublicense, or transfer the Software;
+  (c) Remove or alter any proprietary notices, labels, or marks;
+  (d) Use the Software for any unlawful purpose.
+
+3. INTELLECTUAL PROPERTY
+The Software is protected by copyright laws. The Author retains all \
+intellectual property rights.
+
+4. DISCLAIMER OF WARRANTIES
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS \
+OR IMPLIED.
+
+5. LIMITATION OF LIABILITY
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER \
+LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+6. TERMINATION
+This EULA terminates automatically if you fail to comply with any term. \
+Upon termination, you must destroy all copies of the Software.
+"""
+
+
 class AboutDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, icon_path: Optional[str] = None):
         super().__init__(parent)
-        self.setWindowTitle("About GKMediaRandomizer")
-        self.setFixedSize(400, 280)
+        self.setWindowTitle("About GK Media Randomizer")
+        self.setFixedSize(480, 520)
         self.setStyleSheet(f"""
             QDialog {{
                 background-color: {BG_SURFACE};
-                border: 1px solid {BORDER};
             }}
         """)
 
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)
-        layout.setContentsMargins(32, 28, 32, 24)
+        layout.setSpacing(8)
+        layout.setContentsMargins(32, 24, 32, 20)
+
+        # App icon
+        if icon_path:
+            icon_label = QLabel()
+            icon_pix = QPixmap(icon_path)
+            if not icon_pix.isNull():
+                icon_label.setPixmap(icon_pix.scaled(56, 56, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                icon_label.setAlignment(Qt.AlignCenter)
+                layout.addWidget(icon_label)
 
         # App name
-        title = QLabel("GKMediaRandomizer")
-        title.setFont(QFont("Segoe UI", 20, QFont.Bold))
+        title = QLabel("GK Media Randomizer")
+        title.setFont(QFont("Segoe UI", 18, QFont.Bold))
         title.setStyleSheet(f"color: {TEXT_PRIMARY};")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
-        # Version
-        ver = QLabel(f"Version {APP_VERSION}")
-        ver.setStyleSheet(f"color: {ACCENT}; font-size: 13px;")
+        # Version + author
+        ver = QLabel(f"Version {APP_VERSION}  —  by George Karagioules")
+        ver.setStyleSheet(f"color: {ACCENT}; font-size: 12px;")
         ver.setAlignment(Qt.AlignCenter)
         layout.addWidget(ver)
 
         layout.addSpacing(8)
 
-        # Description
-        desc = QLabel("A media randomizer that shuffles and displays\nimages and videos from your folders.")
-        desc.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 12px;")
-        desc.setAlignment(Qt.AlignCenter)
-        desc.setWordWrap(True)
-        layout.addWidget(desc)
+        # EULA in a scroll area
+        from PyQt5.QtWidgets import QTextEdit
+        eula = QTextEdit()
+        eula.setReadOnly(True)
+        eula.setPlainText(EULA_TEXT)
+        eula.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {BG_DARK};
+                color: {TEXT_SECONDARY};
+                border: 1px solid {BORDER};
+                border-radius: 6px;
+                padding: 10px;
+                font-size: 11px;
+                font-family: "Segoe UI", sans-serif;
+            }}
+        """)
+        layout.addWidget(eula, 1)
 
-        layout.addSpacing(4)
-
-        # Author
-        author = QLabel("by George Karagioules")
-        author.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
-        author.setAlignment(Qt.AlignCenter)
-        layout.addWidget(author)
-
-        layout.addStretch()
+        layout.addSpacing(8)
 
         # Close button
         close_btn = QPushButton("Close")
-        close_btn.setProperty("accent", True)
         close_btn.setFixedWidth(100)
+        close_btn.setCursor(Qt.PointingHandCursor)
         close_btn.clicked.connect(self.accept)
         close_btn.setStyleSheet(f"""
             QPushButton {{
@@ -456,20 +509,10 @@ class GKMediaRandomizerApp(QMainWindow):
         """)
         top_layout.addWidget(self.file_counter)
 
-        self.file_name_label = QLabel("GK Media Randomizer")
+        self.file_name_label = QLabel("")
         self.file_name_label.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 12px;")
         self.file_name_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         top_layout.addWidget(self.file_name_label)
-
-        self.mode_indicator = QLabel(self._mode_display())
-        self.mode_indicator.setStyleSheet(f"""
-            color: {TEXT_MUTED};
-            font-size: 11px;
-            padding: 3px 10px;
-            border: 1px solid {BORDER};
-            border-radius: 10px;
-        """)
-        top_layout.addWidget(self.mode_indicator)
 
         root.addWidget(top_bar)
 
@@ -551,45 +594,66 @@ class GKMediaRandomizerApp(QMainWindow):
         btn.clicked.connect(callback)
         return btn
 
-    def _mode_display(self) -> str:
-        if self.randomization_mode == RandomizationMode.FOLDER_BALANCED:
-            return "Folder-Balanced"
-        return "Global Shuffle"
-
     def _mode_short(self) -> str:
         if self.randomization_mode == RandomizationMode.FOLDER_BALANCED:
             return "Folder-Balanced"
         return "Global Shuffle"
 
     # ── Welcome Screen ───────────────────────────────────────
+    def _get_icon_path(self) -> Optional[str]:
+        """Find the app icon file."""
+        candidates = [
+            Path(__file__).parent / "icon.png",
+            Path(__file__).parent / "icon.ico",
+        ]
+        if getattr(sys, 'frozen', False):
+            candidates.insert(0, Path(sys.executable).parent / "icon.png")
+            candidates.insert(1, Path(sys.executable).parent / "icon.ico")
+        for p in candidates:
+            if p.exists():
+                return str(p)
+        return None
+
     def _show_welcome(self):
         self._stop_video()
         self.media_stack.setCurrentIndex(0)
         self.file_counter.setText("")
-        self.file_name_label.setText("GK Media Randomizer")
+        self.file_name_label.setText("")
         self.btn_delete.setEnabled(False)
 
-        # Build a styled welcome message
         self.media_label.setText("")
         welcome = QPixmap(self.media_stack.size())
         welcome.fill(QColor(BG_DARK))
         painter = QPainter(welcome)
         painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
+
+        cx = welcome.width() // 2
+        cy = welcome.height() // 2
+
+        # App icon
+        icon_path = self._get_icon_path()
+        if icon_path:
+            icon_pix = QPixmap(icon_path)
+            if not icon_pix.isNull():
+                icon_size = 72
+                scaled_icon = icon_pix.scaled(icon_size, icon_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                painter.drawPixmap(cx - scaled_icon.width() // 2, cy - 120, scaled_icon)
 
         # Title
         painter.setPen(QColor(TEXT_PRIMARY))
-        painter.setFont(QFont("Segoe UI", 28, QFont.Bold))
-        painter.drawText(welcome.rect().adjusted(0, -60, 0, 0), Qt.AlignCenter, "GK Media Randomizer")
+        painter.setFont(QFont("Segoe UI", 26, QFont.Bold))
+        painter.drawText(welcome.rect().adjusted(0, -20, 0, 0), Qt.AlignCenter, "GK Media Randomizer")
 
         # Subtitle
         painter.setPen(QColor(TEXT_SECONDARY))
         painter.setFont(QFont("Segoe UI", 13))
-        painter.drawText(welcome.rect().adjusted(0, 10, 0, 0), Qt.AlignCenter, "Click \"Open Folder\" to load media")
+        painter.drawText(welcome.rect().adjusted(0, 30, 0, 0), Qt.AlignCenter, 'Click "Open Folder" to load media')
 
         # Hint
         painter.setPen(QColor(TEXT_MUTED))
         painter.setFont(QFont("Segoe UI", 11))
-        painter.drawText(welcome.rect().adjusted(0, 60, 0, 0), Qt.AlignCenter,
+        painter.drawText(welcome.rect().adjusted(0, 70, 0, 0), Qt.AlignCenter,
                          "Arrow keys to navigate  |  Space for next  |  Del to remove")
 
         painter.end()
@@ -597,7 +661,7 @@ class GKMediaRandomizerApp(QMainWindow):
 
     # ── About Dialog ─────────────────────────────────────────
     def _show_about(self):
-        dlg = AboutDialog(self)
+        dlg = AboutDialog(self, icon_path=self._get_icon_path())
         dlg.exec_()
 
     # ── Folder & Scanning ────────────────────────────────────
@@ -737,7 +801,6 @@ class GKMediaRandomizerApp(QMainWindow):
         else:
             self.randomization_mode = RandomizationMode.GLOBAL_SHUFFLE
         self.btn_mode.setText(self._mode_short())
-        self.mode_indicator.setText(self._mode_display())
         self.save_settings()
         if self.media_items:
             self.scan_folder()

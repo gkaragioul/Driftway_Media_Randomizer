@@ -59,13 +59,13 @@ if %ERRORLEVEL% NEQ 0 (
 echo.
 echo ============================================
 echo  Build successful!
-echo  Installer: dist-installer\GKMediaRandomizer_Setup_2.1.0.exe
+echo  Installer: dist-installer\GKMediaRandomizer_Setup_2.1.1.exe
 echo ============================================
 echo.
 
 REM Generate SHA256 for release notes
 echo SHA256 hash for release notes:
-certutil -hashfile "dist-installer\GKMediaRandomizer_Setup_2.1.0.exe" SHA256 | findstr /V "hash"
+certutil -hashfile "dist-installer\GKMediaRandomizer_Setup_2.1.1.exe" SHA256 | findstr /V "hash"
 echo.
 
 pause
