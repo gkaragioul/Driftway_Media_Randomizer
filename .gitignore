@@ -6,6 +6,7 @@ __pycache__/
 # PyInstaller build artifacts
 Windows/build/
 Windows/dist/
+Windows/dist-installer/
 *.spec.bak
 
 # Test artifacts

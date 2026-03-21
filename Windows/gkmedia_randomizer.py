@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """
-PriveRandomizer - A portable Windows app to randomly view images and videos
+GKMediaRandomizer - Windows app to randomly view images and videos
 Rewritten from Swift macOS app for Windows using PyQt5
+Distributed as Inno Setup installer with auto-update from GitHub releases.
 """
+
+APP_VERSION = "2.0.1"
+REPO_OWNER = "georgekgr12"
+REPO_NAME = "GKMediaRandomizer-releases"
+GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
 
 import sys
 import os
@@ -10,11 +16,16 @@ import json
 import random
 import traceback
 import platform
+import hashlib
+import tempfile
+import subprocess
 from pathlib import Path
 from enum import Enum
 from collections import defaultdict
 from typing import List, Optional, Dict
 from datetime import datetime
+from urllib.request import urlopen, Request
+from urllib.error import URLError
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QVBoxLayout,
@@ -130,9 +141,134 @@ class MediaScanner(QThread):
         self._is_running = False
 
 
-class PriveRandomizerApp(QMainWindow):
+class UpdateChecker(QThread):
+    """Thread for checking GitHub releases for updates"""
+
+    result = pyqtSignal(dict)   # update info or empty dict
+    error = pyqtSignal(str)
+
+    def __init__(self, is_auto: bool = False):
+        super().__init__()
+        self.is_auto = is_auto
+
+    def run(self):
+        try:
+            req = Request(GITHUB_API_URL, headers={
+                "User-Agent": f"GKMediaRandomizer/{APP_VERSION}",
+                "Accept": "application/vnd.github.v3+json",
+            })
+            with urlopen(req, timeout=15) as resp:
+                release = json.loads(resp.read().decode())
+
+            tag = release.get("tag_name", "")
+            if not tag:
+                self.result.emit({})
+                return
+
+            latest = tag.lstrip("v")
+            if not self._is_newer(latest, APP_VERSION):
+                self.result.emit({})
+                return
+
+            # Find .exe asset (Inno Setup installer)
+            assets = release.get("assets", [])
+            exe_asset = next((a for a in assets if a["name"].endswith(".exe")), None)
+            if not exe_asset:
+                self.result.emit({})
+                return
+
+            # Extract SHA256 from release body
+            body = release.get("body", "")
+            import re
+            sha_match = re.search(r"SHA256:\s*([a-fA-F0-9]{64})", body, re.IGNORECASE)
+            expected_sha = sha_match.group(1).lower() if sha_match else None
+
+            self.result.emit({
+                "version": tag,
+                "download_url": exe_asset["browser_download_url"],
+                "file_name": exe_asset["name"],
+                "release_notes": body or "No release notes.",
+                "expected_sha256": expected_sha,
+                "is_auto": self.is_auto,
+            })
+        except Exception as e:
+            if not self.is_auto:
+                msg = str(e)
+                if not msg:
+                    msg = type(e).__name__
+                if hasattr(e, 'code'):
+                    msg = f"HTTP {e.code}: {e.reason}" if hasattr(e, 'reason') else f"HTTP {e.code}"
+                self.error.emit(msg)
+            else:
+                self.result.emit({})
+
+    @staticmethod
+    def _is_newer(latest: str, current: str) -> bool:
+        lp = [int(x) for x in latest.split(".")[:3]]
+        cp = [int(x) for x in current.split(".")[:3]]
+        while len(lp) < 3: lp.append(0)
+        while len(cp) < 3: cp.append(0)
+        return lp > cp
+
+
+class UpdateDownloader(QThread):
+    """Thread for downloading an update installer with SHA256 verification"""
+
+    progress = pyqtSignal(int)       # 0-100
+    finished = pyqtSignal(str)       # file path on success
+    error = pyqtSignal(str)
+
+    def __init__(self, url: str, file_name: str, expected_sha256: Optional[str]):
+        super().__init__()
+        self.url = url
+        self.file_name = file_name
+        self.expected_sha256 = expected_sha256
+
+    def run(self):
+        try:
+            temp_dir = tempfile.gettempdir()
+            dest = os.path.join(temp_dir, f"gkmr_{int(datetime.now().timestamp())}_{self.file_name}")
+
+            req = Request(self.url, headers={"User-Agent": f"GKMediaRandomizer/{APP_VERSION}"})
+            resp = urlopen(req, timeout=120)
+            total = int(resp.headers.get("Content-Length", 0))
+            sha = hashlib.sha256()
+            downloaded = 0
+
+            with open(dest, "wb") as f:
+                while True:
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    sha.update(chunk)
+                    downloaded += len(chunk)
+                    if total > 0:
+                        self.progress.emit(int(downloaded * 100 / total))
+
+            # Verify SHA256
+            actual_sha = sha.hexdigest()
+            if self.expected_sha256 and actual_sha != self.expected_sha256:
+                try:
+                    os.unlink(dest)
+                except Exception:
+                    pass
+                self.error.emit(
+                    f"Integrity check failed.\n\n"
+                    f"Expected: {self.expected_sha256}\n"
+                    f"Actual: {actual_sha}\n\n"
+                    f"The file has been deleted for safety."
+                )
+                return
+
+            self.finished.emit(dest)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
+class GKMediaRandomizerApp(QMainWindow):
     """Main application window"""
-    
+
     def __init__(self):
         super().__init__()
         self.media_items: List[MediaItem] = []
@@ -140,20 +276,31 @@ class PriveRandomizerApp(QMainWindow):
         self.current_folder: Optional[Path] = None
         self.randomization_mode = RandomizationMode.GLOBAL_SHUFFLE
         self.scanner_thread: Optional[MediaScanner] = None
-        self.config_file = Path.home() / ".prive_randomizer_config.json"
-        
+        self._update_checker: Optional[UpdateChecker] = None
+        self._update_downloader: Optional[UpdateDownloader] = None
+        self.config_file = Path.home() / ".gkmedia_randomizer_config.json"
+        self._app_data_dir = Path(os.environ.get("APPDATA", Path.home())) / "GKMediaRandomizer"
+        self._app_data_dir.mkdir(parents=True, exist_ok=True)
+        self._dismissed_file = self._app_data_dir / "dismissed_update.txt"
+        self._pending_file = self._app_data_dir / "pending_update.txt"
+
         # Load settings
         self.load_settings()
-        
+
         # Setup UI
         self.init_ui()
-        
+
         # Setup keyboard shortcuts
         self.setup_shortcuts()
+
+        # Check for failed pending update, then auto-check for new updates
+        self._check_pending_update_failed()
+        self._cleanup_orphaned_scripts()
+        QTimer.singleShot(1500, lambda: self._check_for_updates(is_auto=True))
     
     def init_ui(self):
         """Initialize the user interface"""
-        self.setWindowTitle("PriveRandomizer")
+        self.setWindowTitle("GKMediaRandomizer")
         self.setGeometry(100, 100, 1000, 750)
         
         # Create central widget and layout
@@ -212,7 +359,20 @@ class PriveRandomizerApp(QMainWindow):
         self.delete_btn.clicked.connect(self.delete_current_item)
         self.delete_btn.setEnabled(False)
         control_layout.addWidget(self.delete_btn)
-        
+
+        # Version label + update check button
+        self.version_label = QLabel(f"v{APP_VERSION}")
+        self.version_label.setStyleSheet("color: rgba(255,255,255,0.5); padding: 0 8px; font-size: 11px;")
+        control_layout.addWidget(self.version_label)
+
+        self.update_btn = QPushButton("Check for Updates")
+        self.update_btn.setStyleSheet("""
+            QPushButton { background-color: #37474f; font-size: 11px; padding: 6px 10px; }
+            QPushButton:hover { background-color: #455a64; }
+        """)
+        self.update_btn.clicked.connect(lambda: self._check_for_updates(is_auto=False))
+        control_layout.addWidget(self.update_btn)
+
         main_layout.addLayout(control_layout)
         
         # Set stylesheet
@@ -484,6 +644,174 @@ class PriveRandomizerApp(QMainWindow):
         else:
             super().keyPressEvent(event)
     
+    # ── Auto-update system ──────────────────────────────────────
+
+    def _check_pending_update_failed(self):
+        """On startup, check if a previous update attempt failed."""
+        try:
+            if not self._pending_file.exists():
+                return
+            expected = self._pending_file.read_text(encoding="utf-8").strip()
+            self._pending_file.unlink(missing_ok=True)
+            if not expected:
+                return
+            expected_clean = expected.lstrip("v")
+            if UpdateChecker._is_newer(expected_clean, APP_VERSION):
+                QMessageBox.warning(
+                    self, "Update Failed",
+                    f"The update to {expected} did not apply successfully.\n"
+                    f"You are still running v{APP_VERSION}.\n\n"
+                    f"Please try updating again or download manually."
+                )
+        except Exception:
+            pass
+
+    def _cleanup_orphaned_scripts(self):
+        """Remove leftover update helper scripts from temp."""
+        try:
+            tmp = tempfile.gettempdir()
+            for f in os.listdir(tmp):
+                if f.startswith("gkmr_relaunch_") or f.startswith("gkmr_launcher_"):
+                    try:
+                        os.unlink(os.path.join(tmp, f))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    def _is_dismissed(self, tag: str) -> bool:
+        try:
+            if not self._dismissed_file.exists():
+                return False
+            return self._dismissed_file.read_text(encoding="utf-8").strip() == tag
+        except Exception:
+            return False
+
+    def _dismiss_version(self, tag: str):
+        try:
+            self._dismissed_file.write_text(tag, encoding="utf-8")
+        except Exception:
+            pass
+
+    def _check_for_updates(self, is_auto: bool = False):
+        """Start an update check in a background thread."""
+        if self._update_checker and self._update_checker.isRunning():
+            return
+        self._update_is_auto = is_auto
+        if not is_auto:
+            self.update_btn.setText("Checking...")
+            self.update_btn.setEnabled(False)
+        self._update_checker = UpdateChecker(is_auto=is_auto)
+        self._update_checker.result.connect(self._on_update_check_result)
+        self._update_checker.error.connect(self._on_update_check_error)
+        self._update_checker.start()
+
+    def _on_update_check_result(self, info: dict):
+        self.update_btn.setText("Check for Updates")
+        self.update_btn.setEnabled(True)
+
+        if not info:
+            if not self._update_is_auto:
+                self.version_label.setText(f"v{APP_VERSION} — up to date")
+            return
+
+        is_auto = info.get("is_auto", False)
+        tag = info["version"]
+
+        # Skip dismissed versions on auto-check
+        if is_auto and self._is_dismissed(tag):
+            return
+
+        reply = QMessageBox.question(
+            self, "Update Available",
+            f"A new version is available: {tag}\n\n"
+            f"{info.get('release_notes', '')}\n\n"
+            f"Download and install now?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+
+        if reply == QMessageBox.Yes:
+            self._download_update(info)
+        elif is_auto:
+            self._dismiss_version(tag)
+
+    def _on_update_check_error(self, error_msg: str):
+        self.update_btn.setText("Check for Updates")
+        self.update_btn.setEnabled(True)
+        QMessageBox.warning(self, "Update Check Failed", f"Could not check for updates:\n{error_msg}")
+
+    def _download_update(self, info: dict):
+        """Download the update installer."""
+        self.update_btn.setText("Downloading: 0%")
+        self.update_btn.setEnabled(False)
+        self._pending_update_info = info
+
+        self._update_downloader = UpdateDownloader(
+            info["download_url"], info["file_name"], info.get("expected_sha256")
+        )
+        self._update_downloader.progress.connect(
+            lambda pct: self.update_btn.setText(f"Downloading: {pct}%")
+        )
+        self._update_downloader.finished.connect(self._on_download_finished)
+        self._update_downloader.error.connect(self._on_download_error)
+        self._update_downloader.start()
+
+    def _on_download_finished(self, file_path: str):
+        self.update_btn.setText("Installing update...")
+        self._install_update(file_path, self._pending_update_info["version"])
+
+    def _on_download_error(self, error_msg: str):
+        self.update_btn.setText("Check for Updates")
+        self.update_btn.setEnabled(True)
+        QMessageBox.critical(self, "Download Failed", error_msg)
+
+    def _install_update(self, installer_path: str, version: str):
+        """Launch installer via PowerShell + VBScript (matches GKMD pattern) and quit."""
+        if not os.path.exists(installer_path):
+            return
+
+        # Write pending update marker
+        try:
+            self._pending_file.write_text(version, encoding="utf-8")
+        except Exception:
+            pass
+
+        app_exe = sys.executable
+        tmp = tempfile.gettempdir()
+        ts = int(datetime.now().timestamp())
+
+        # PowerShell script: wait → run installer silently with UAC → relaunch
+        ps1_path = os.path.join(tmp, f"gkmr_relaunch_{ts}.ps1")
+        ps1_lines = [
+            "Start-Sleep -Seconds 3",
+            f"$proc = Start-Process -FilePath '{installer_path}' -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Verb RunAs -Wait -PassThru",
+            "Start-Sleep -Seconds 2",
+            f"if (Test-Path '{app_exe}') {{ Start-Process '{app_exe}' }}",
+            f"Remove-Item '{ps1_path}' -Force -ErrorAction SilentlyContinue",
+        ]
+        with open(ps1_path, "w", encoding="utf-8") as f:
+            f.write("\r\n".join(ps1_lines))
+
+        # VBScript launcher for session isolation (UAC + GUI)
+        vbs_path = os.path.join(tmp, f"gkmr_launcher_{ts}.vbs")
+        vbs_lines = [
+            'Set ws = CreateObject("WScript.Shell")',
+            f'ws.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{ps1_path}""", 0, True',
+            'CreateObject("Scripting.FileSystemObject").DeleteFile WScript.ScriptFullName',
+        ]
+        with open(vbs_path, "w", encoding="utf-8") as f:
+            f.write("\r\n".join(vbs_lines))
+
+        # Launch VBScript detached
+        subprocess.Popen(
+            ["wscript.exe", vbs_path],
+            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+            close_fds=True,
+        )
+
+        # Quit app so installer can replace files
+        QTimer.singleShot(500, QApplication.instance().quit)
+
     def save_settings(self):
         """Save application settings"""
         try:
@@ -534,11 +862,11 @@ def _install_crash_handler():
 
     def handle_exception(exc_type, exc_value, exc_tb):
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        log_name = f"PriveRandomizer_crash_{timestamp}.log"
+        log_name = f"GKMediaRandomizer_crash_{timestamp}.log"
         log_path = desktop / log_name
 
         lines = [
-            "PriveRandomizer — Crash Report",
+            "GKMediaRandomizer — Crash Report",
             "=" * 50,
             f"Time     : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             f"Python   : {sys.version}",
@@ -568,7 +896,7 @@ def main():
     _install_crash_handler()
 
     # Redirect stderr to a log file for the windowed exe so crashes aren't silent
-    log_path = Path.home() / ".prive_randomizer_error.log"
+    log_path = Path.home() / ".gkmedia_randomizer_error.log"
     try:
         sys.stderr = open(str(log_path), 'w')
     except Exception:
@@ -587,7 +915,7 @@ def main():
         if exe_icon.exists():
             app.setWindowIcon(QIcon(str(exe_icon)))
 
-    window = PriveRandomizerApp()
+    window = GKMediaRandomizerApp()
     sys.exit(app.exec_())
 
 

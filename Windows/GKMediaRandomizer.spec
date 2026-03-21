@@ -1,4 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
+# PyInstaller spec — one-dir build for Inno Setup packaging
 
 import os
 
@@ -25,7 +26,7 @@ _vlc_bins = [
 ]
 
 a = Analysis(
-    ['prive_randomizer.py'],
+    ['gkmedia_randomizer.py'],
     pathex=[],
     binaries=_vlc_bins,
     datas=[('icon.ico', '.'), ('icon.png', '.')],
@@ -42,16 +43,13 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
-    name='PriveRandomizer',
+    exclude_binaries=True,
+    name='GKMediaRandomizer',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -59,4 +57,14 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['icon.ico'],
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='GKMediaRandomizer',
 )
