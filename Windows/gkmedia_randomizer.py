@@ -4,7 +4,7 @@ GKMediaRandomizer - Windows app to randomly view images and videos
 Distributed as Inno Setup installer with auto-update from GitHub releases.
 """
 
-APP_VERSION = "2.1.3"
+APP_VERSION = "2.1.4"
 REPO_OWNER = "georgekgr12"
 REPO_NAME = "GK_MediaRandomizer_Releases"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
@@ -609,6 +609,8 @@ class GKMediaRandomizerApp(QMainWindow):
 
         self._show_welcome()
         self.show()
+        self.raise_()
+        self.activateWindow()
 
     def _make_btn(self, text: str, callback, accent=False, danger=False) -> QPushButton:
         btn = QPushButton(text)
