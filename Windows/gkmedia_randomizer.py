@@ -4,7 +4,7 @@ GKMediaRandomizer - Windows app to randomly view images and videos
 Distributed as Inno Setup installer with auto-update from GitHub releases.
 """
 
-APP_VERSION = "2.1.1"
+APP_VERSION = "2.1.2"
 REPO_OWNER = "georgekgr12"
 REPO_NAME = "GKMediaRandomizer-releases"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
@@ -21,8 +21,7 @@ import tempfile
 import subprocess
 from pathlib import Path
 from enum import Enum
-from collections import defaultdict
-from typing import List, Optional, Dict
+from typing import List, Optional
 from datetime import datetime
 from urllib.request import urlopen, Request
 from urllib.error import URLError
@@ -126,7 +125,7 @@ QPushButton[accent="true"]:pressed {{
     background-color: {ACCENT_DIM};
 }}
 QPushButton[danger="true"] {{
-    background-color: transparent;
+    background-color: {BG_ELEVATED};
     border: 1px solid {DANGER};
     color: {DANGER};
 }}
@@ -155,9 +154,6 @@ class MediaType(Enum):
     UNKNOWN = "unknown"
 
 
-class RandomizationMode(Enum):
-    GLOBAL_SHUFFLE = "Global Shuffle"
-    FOLDER_BALANCED = "Folder-Balanced"
 
 
 class MediaItem:
@@ -460,7 +456,6 @@ class GKMediaRandomizerApp(QMainWindow):
         self.media_items: List[MediaItem] = []
         self.current_index = -1
         self.current_folder: Optional[Path] = None
-        self.randomization_mode = RandomizationMode.GLOBAL_SHUFFLE
         self.scanner_thread: Optional[MediaScanner] = None
         self._update_checker: Optional[UpdateChecker] = None
         self._update_downloader: Optional[UpdateDownloader] = None
@@ -552,7 +547,6 @@ class GKMediaRandomizerApp(QMainWindow):
         self.btn_prev = self._make_btn("  Prev", self.show_previous)
         self.btn_next = self._make_btn("Next  ", self.show_next)
         self.btn_folder = self._make_btn("Open Folder", self.select_folder, accent=True)
-        self.btn_mode = self._make_btn(self._mode_short(), self.toggle_randomization_mode)
         self.btn_delete = self._make_btn("Delete", self.delete_current_item, danger=True)
         self.btn_delete.setEnabled(False)
 
@@ -560,7 +554,6 @@ class GKMediaRandomizerApp(QMainWindow):
         tb_layout.addWidget(self.btn_next)
         tb_layout.addSpacing(8)
         tb_layout.addWidget(self.btn_folder)
-        tb_layout.addWidget(self.btn_mode)
         tb_layout.addWidget(self.btn_delete)
 
         tb_layout.addStretch()
@@ -594,11 +587,6 @@ class GKMediaRandomizerApp(QMainWindow):
         btn.clicked.connect(callback)
         return btn
 
-    def _mode_short(self) -> str:
-        if self.randomization_mode == RandomizationMode.FOLDER_BALANCED:
-            return "Folder-Balanced"
-        return "Global Shuffle"
-
     # ── Welcome Screen ───────────────────────────────────────
     def _get_icon_path(self) -> Optional[str]:
         """Find the app icon file."""
@@ -626,24 +614,11 @@ class GKMediaRandomizerApp(QMainWindow):
         welcome.fill(QColor(BG_DARK))
         painter = QPainter(welcome)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setRenderHint(QPainter.SmoothPixmapTransform)
-
-        cx = welcome.width() // 2
-        cy = welcome.height() // 2
-
-        # App icon
-        icon_path = self._get_icon_path()
-        if icon_path:
-            icon_pix = QPixmap(icon_path)
-            if not icon_pix.isNull():
-                icon_size = 72
-                scaled_icon = icon_pix.scaled(icon_size, icon_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                painter.drawPixmap(cx - scaled_icon.width() // 2, cy - 120, scaled_icon)
 
         # Title
         painter.setPen(QColor(TEXT_PRIMARY))
         painter.setFont(QFont("Segoe UI", 26, QFont.Bold))
-        painter.drawText(welcome.rect().adjusted(0, -20, 0, 0), Qt.AlignCenter, "GK Media Randomizer")
+        painter.drawText(welcome.rect().adjusted(0, -40, 0, 0), Qt.AlignCenter, "GK Media Randomizer")
 
         # Subtitle
         painter.setPen(QColor(TEXT_SECONDARY))
@@ -701,31 +676,12 @@ class GKMediaRandomizerApp(QMainWindow):
     def _apply_randomization(self, items: List[MediaItem]) -> List[MediaItem]:
         if not items:
             return items
-        if self.randomization_mode == RandomizationMode.FOLDER_BALANCED:
-            buckets: Dict[Path, List[MediaItem]] = defaultdict(list)
-            for item in items:
-                buckets[item.path.parent].append(item)
-            folder_lists = list(buckets.values())
-            for lst in folder_lists:
-                random.shuffle(lst)
-            random.shuffle(folder_lists)
-            result: List[MediaItem] = []
-            while folder_lists:
-                still_going = []
-                for lst in folder_lists:
-                    if lst:
-                        result.append(lst.pop(0))
-                    if lst:
-                        still_going.append(lst)
-                folder_lists = still_going
-            return result
-        else:
-            shuffled = list(items)
-            random.seed(os.urandom(32))
-            random.shuffle(shuffled)
-            random.seed(os.urandom(32))
-            random.shuffle(shuffled)
-            return shuffled
+        shuffled = list(items)
+        random.seed(os.urandom(32))
+        random.shuffle(shuffled)
+        random.seed(os.urandom(32))
+        random.shuffle(shuffled)
+        return shuffled
 
     # ── Media Display ────────────────────────────────────────
     def _display_current(self):
@@ -794,16 +750,6 @@ class GKMediaRandomizerApp(QMainWindow):
             return
         self.current_index = (self.current_index - 1) % len(self.media_items)
         self._display_current()
-
-    def toggle_randomization_mode(self):
-        if self.randomization_mode == RandomizationMode.GLOBAL_SHUFFLE:
-            self.randomization_mode = RandomizationMode.FOLDER_BALANCED
-        else:
-            self.randomization_mode = RandomizationMode.GLOBAL_SHUFFLE
-        self.btn_mode.setText(self._mode_short())
-        self.save_settings()
-        if self.media_items:
-            self.scan_folder()
 
     def delete_current_item(self):
         if not self.media_items or self.current_index < 0:
@@ -1009,7 +955,6 @@ class GKMediaRandomizerApp(QMainWindow):
         try:
             settings = {
                 "last_folder": str(self.current_folder) if self.current_folder else None,
-                "randomization_mode": self.randomization_mode.value,
             }
             with open(self.config_file, 'w') as f:
                 json.dump(settings, f, indent=2)
@@ -1025,11 +970,6 @@ class GKMediaRandomizerApp(QMainWindow):
                         last_folder = Path(settings["last_folder"])
                         if last_folder.exists():
                             self.current_folder = last_folder
-                    mode_str = settings.get("randomization_mode", "Global Shuffle")
-                    if mode_str in ("Folder-Balanced",):
-                        self.randomization_mode = RandomizationMode.FOLDER_BALANCED
-                    else:
-                        self.randomization_mode = RandomizationMode.GLOBAL_SHUFFLE
         except Exception:
             pass
 
