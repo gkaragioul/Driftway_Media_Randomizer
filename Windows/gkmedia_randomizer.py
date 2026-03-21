@@ -6,7 +6,7 @@ Distributed as Inno Setup installer with auto-update from GitHub releases.
 
 APP_VERSION = "2.1.2"
 REPO_OWNER = "georgekgr12"
-REPO_NAME = "GKMediaRandomizer-releases"
+REPO_NAME = "GK_MediaRandomizer_Releases"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
 
 import sys
@@ -212,18 +212,54 @@ class UpdateChecker(QThread):
     result = pyqtSignal(dict)
     error = pyqtSignal(str)
 
-    def __init__(self, is_auto: bool = False):
+    def __init__(self, is_auto: bool = False, cache_dir: Optional[Path] = None):
         super().__init__()
         self.is_auto = is_auto
+        self._cache_file = (cache_dir / "etag_cache.json") if cache_dir else None
+
+    def _load_cache(self) -> dict:
+        try:
+            if self._cache_file and self._cache_file.exists():
+                return json.loads(self._cache_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+        return {}
+
+    def _save_cache(self, etag: str, data: dict):
+        try:
+            if self._cache_file:
+                self._cache_file.write_text(json.dumps({
+                    "etag": etag, "data": data,
+                }, ensure_ascii=False), encoding="utf-8")
+        except Exception:
+            pass
 
     def run(self):
         try:
-            req = Request(GITHUB_API_URL, headers={
+            cache = self._load_cache()
+            headers = {
                 "User-Agent": f"GKMediaRandomizer/{APP_VERSION}",
                 "Accept": "application/vnd.github.v3+json",
-            })
-            with urlopen(req, timeout=15) as resp:
-                release = json.loads(resp.read().decode())
+            }
+            if cache.get("etag"):
+                headers["If-None-Match"] = cache["etag"]
+
+            req = Request(GITHUB_API_URL, headers=headers)
+            try:
+                with urlopen(req, timeout=15) as resp:
+                    etag = resp.headers.get("ETag", "")
+                    release = json.loads(resp.read().decode())
+                    if etag:
+                        self._save_cache(etag, release)
+            except URLError as e:
+                if hasattr(e, 'code') and e.code == 304:
+                    # Not modified — use cached data (doesn't count against rate limit)
+                    release = cache.get("data")
+                    if not release:
+                        self.result.emit({})
+                        return
+                else:
+                    raise
 
             tag = release.get("tag_name", "")
             if not tag:
@@ -848,7 +884,7 @@ class GKMediaRandomizerApp(QMainWindow):
         if not is_auto:
             self.btn_update.setText("Checking...")
             self.btn_update.setEnabled(False)
-        self._update_checker = UpdateChecker(is_auto=is_auto)
+        self._update_checker = UpdateChecker(is_auto=is_auto, cache_dir=self._app_data_dir)
         self._update_checker.result.connect(self._on_update_check_result)
         self._update_checker.error.connect(self._on_update_check_error)
         self._update_checker.start()

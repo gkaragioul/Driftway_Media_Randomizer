@@ -26,14 +26,14 @@ pip install PyQt5 python-vlc Pillow send2trash
 python gkmedia_randomizer.py          # Dev mode
 
 build.bat                            # Build installer .exe
-# Output: Windows/dist-installer/GKMediaRandomizer_Setup_<version>.exe
+# Output: Windows/dist-installer/GKMediaRandomizer_Setup.exe
 ```
 
 ## Version & Updates
 - Version is set in `Windows/gkmedia_randomizer.py` → `APP_VERSION` constant
-- Update system checks GitHub releases at `georgekgr12/GKMediaRandomizer-releases`
+- Update system checks GitHub releases at `georgekgr12/GK_MediaRandomizer_Releases`
 - Update flow (matches GKMD pattern):
-  1. Check `api.github.com/repos/georgekgr12/GKMediaRandomizer-releases/releases/latest`
+  1. Check `api.github.com/repos/georgekgr12/GK_MediaRandomizer_Releases/releases/latest`
   2. Compare tag version with current app version
   3. Prompt user with release notes
   4. Download installer to temp (with SHA256 verification if hash in release notes)
@@ -41,11 +41,12 @@ build.bat                            # Build installer .exe
   6. Quit current app, let helper script handle the rest
 - Failed update detection: writes pending marker before install, checks on next launch
 - Dismissed version tracking: user can skip a version, won't be prompted again (auto-check)
+- ETag caching: sends `If-None-Match` header with cached ETag; 304 responses don't count against GitHub rate limit. Cache stored at `%APPDATA%\GKMediaRandomizer\etag_cache.json`
 - Version displayed in bottom control bar
 
 ## GitHub
-- Source repo: `https://github.com/georgekgr12/GKMediaRandomizer` (public, source code)
-- Releases repo: `https://github.com/georgekgr12/GKMediaRandomizer-releases` (public, for auto-updates)
+- Source repo: `https://github.com/georgekgr12/GK_MediaRandomizer_Source` (public, source code)
+- Releases repo: `https://github.com/georgekgr12/GK_MediaRandomizer_Releases` (public, for auto-updates)
 - Releases should contain the Inno Setup `.exe` installer with SHA256 hash in release notes body
 - SHA256 format in release notes: `SHA256: <64-char hex>`
 
@@ -57,12 +58,12 @@ build.bat                            # Build installer .exe
 
 ## Features
 - Recursive folder scanning for images and videos
-- Two randomization modes: Global Shuffle and Folder-Balanced
+- Global shuffle randomization (Fisher-Yates, double-pass with os.urandom entropy)
 - Image display with aspect-fit scaling
 - Video playback via VLC with auto-looping
 - Instant delete to Recycle Bin (no confirmation)
 - Keyboard navigation (arrow keys, space, delete)
-- Settings persistence (last folder, randomization mode)
+- Settings persistence (last folder)
 - Auto-update from GitHub releases (with SHA256 integrity check)
 - Crash logging to Desktop
 - Inno Setup installer with EULA, Program Files install, desktop shortcut
