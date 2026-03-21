@@ -1,65 +1,79 @@
-# PriveRandomizer
+# GKMediaRandomizer
 
-A portable app to randomly view images and videos from a selected folder and its subfolders. Originally built as a Swift macOS app, now also available as a standalone Windows executable.
+A cross-platform media viewer that randomizes playback order from a selected folder. Browse your images and videos in a shuffled order — perfect for rediscovering forgotten media, curating collections, or simply enjoying a randomized slideshow.
 
 ## Features
 
-- **Folder selection** with recursive scanning for media files
-- **Randomized playback** with two modes: Global Shuffle and Folder-Balanced
-- **Keyboard navigation**: Left/Right arrows, Space for next, Delete to remove
-- **Instant delete** — moves file to Recycle Bin immediately, no confirmation dialog
-- **Video playback** with auto-looping (VLC-powered on Windows)
-- **Remembers last folder** and settings between sessions
-- **Crash logging** — on any unexpected crash, a detailed log is written to the Desktop
+- **Randomized media playback** — Shuffle through images and videos with cryptographically seeded randomization (Fisher-Yates, double-pass with OS entropy)
+- **Wide format support** — JPG, PNG, GIF, WebP, BMP, TIFF, MP4, AVI, MKV, MOV, WMV, FLV, WebM, M4V, 3GP, and more
+- **Recursive folder scanning** — Automatically discovers all media files in subfolders
+- **Video playback with auto-looping** — Powered by VLC for reliable, seamless video playback
+- **Keyboard-driven navigation** — Arrow keys, spacebar, and delete key for fast, fluid browsing
+- **Instant delete to Recycle Bin** — Remove unwanted files on the fly, always recoverable
+- **Automatic updates** — SHA256-verified downloads from GitHub releases, silent install, and automatic relaunch
+- **Remembers your last session** — Picks up right where you left off
+- **Modern dark interface** — Clean, minimal UI that keeps your media front and center
+- **Simple Windows installer** — One-click Inno Setup installer with desktop shortcut
 
 ## Platforms
 
-### Windows (`Windows/`)
-- Standalone `.exe` built with PyInstaller (PyQt5 + VLC)
-- All video codecs supported via bundled VLC libraries
-- No installation required — just run the exe
+| Platform | Stack | Location |
+|---|---|---|
+| **Windows** | Python 3 + PyQt5 + VLC | `Windows/` |
+| **macOS** | Swift + SwiftUI + AVKit | `Sources/` (legacy) |
 
-### macOS (`Sources/`)
-- Native Swift app using SwiftUI and AVKit
-- Requires macOS 12.0+
+## Keyboard Controls
 
-## Building (Windows)
+| Key | Action |
+|---|---|
+| **→** Right Arrow | Next media |
+| **←** Left Arrow | Previous media |
+| **Space** | Next media |
+| **Delete** | Move current file to Recycle Bin |
+
+## Getting Started
+
+### Download
+
+Grab the latest installer from [Releases](https://github.com/georgekgr12/GK_MediaRandomizer_Releases/releases/latest).
+
+### Build from Source
 
 ```bash
-pip install PyQt5 python-vlc send2trash pyinstaller
-pyinstaller Windows/PriveRandomizer.spec --clean
-```
+cd Windows
+pip install PyQt5 python-vlc Pillow send2trash
+python gkmedia_randomizer.py          # Run in dev mode
 
-The built exe will be in `Windows/dist/`.
+build.bat                             # Build installer .exe
+# Output: Windows/dist-installer/GKMediaRandomizer_Setup.exe
+```
 
 ## Usage
 
-1. Launch the app
-2. Click **Select Folder** to choose a folder with images/videos
-3. Use **Right Arrow** or **Space** to go to the next item
-4. Use **Left Arrow** to go to the previous item
-5. Press **Delete** to instantly move the current file to the Recycle Bin
-6. Toggle **Global / Folder-Balanced** to switch randomization mode
+1. Launch GKMediaRandomizer
+2. Click **Select Folder** to choose a folder with images and videos
+3. Use arrow keys or spacebar to navigate
+4. Press **Delete** to instantly move the current file to the Recycle Bin
 
-## Randomization Modes
+## Auto-Update System
 
-| Mode | Behaviour |
-|---|---|
-| **Global** | All files from all folders shuffled together using OS-entropy seeding |
-| **Folder-Balanced** | Files grouped per folder, each folder shuffled independently, then round-robin interleaved so every folder gets equal coverage |
+The app checks GitHub for new releases on launch:
+- Compares the latest release tag with the current app version
+- Prompts with release notes before downloading
+- Verifies download integrity via SHA256 hash
+- Installs silently and relaunches the app
+- ETag caching minimizes GitHub API usage
 
-## Crash Logs
+## System Requirements
 
-If the app crashes unexpectedly a file named `PriveRandomizer_crash_YYYY-MM-DD_HH-MM-SS.log` is written to your Desktop with the full exception details, Python version, and platform info.
+- **OS**: Windows 10 / 11 (64-bit)
+- **Memory**: 512 MB RAM
+- **Disk**: ~65 MB
 
-## Changelog
+## License
 
-### v1.1 — 2026-03-20
-- Crash handler: detailed log dumped to Desktop on any unhandled exception
-- Delete is now instant — no confirmation popup, no success popup
-- Delete key (keyboard) now triggers deletion
-- Global Shuffle: seeded from `os.urandom` with two independent passes for better entropy
-- Folder-Balanced mode fully implemented: per-folder shuffle + round-robin interleave
+Freeware — see [license.txt](Windows/assets/license.txt) for details.
 
-### v1.0 — 2026-03-04
-- Initial Windows release (PyQt5 + VLC)
+---
+
+Made by **George Karagioules**
