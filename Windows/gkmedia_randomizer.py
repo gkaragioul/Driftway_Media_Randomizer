@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
 GKMediaRandomizer - Windows app to randomly view images and videos
-Rewritten from Swift macOS app for Windows using PyQt5
 Distributed as Inno Setup installer with auto-update from GitHub releases.
 """
 
-APP_VERSION = "2.0.1"
+APP_VERSION = "2.1.0"
 REPO_OWNER = "georgekgr12"
 REPO_NAME = "GKMediaRandomizer-releases"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
 
 import sys
 import os
+import re
 import json
 import random
 import traceback
@@ -30,10 +30,11 @@ from urllib.error import URLError
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QVBoxLayout,
     QHBoxLayout, QWidget, QFileDialog, QMessageBox, QProgressDialog,
-    QStackedWidget, QFrame
+    QStackedWidget, QFrame, QShortcut, QGraphicsDropShadowEffect,
+    QDialog, QSizePolicy, QSpacerItem
 )
-from PyQt5.QtGui import QPixmap, QImage, QIcon, QFont, QKeySequence
-from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize
+from PyQt5.QtGui import QPixmap, QImage, QIcon, QFont, QKeySequence, QColor, QPainter
+from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QPropertyAnimation, QEasingCurve
 
 # Configure VLC paths before importing vlc module
 import ctypes
@@ -48,12 +49,10 @@ def _setup_vlc():
     if not os.path.isdir(base):
         return
 
-    # Add to DLL search path so libvlccore.dll (dependency of libvlc) is found
     os.environ['PATH'] = base + os.pathsep + os.environ.get('PATH', '')
     if hasattr(os, 'add_dll_directory'):
         os.add_dll_directory(base)
 
-    # Pre-load libvlccore before libvlc (libvlc depends on it)
     ctypes.CDLL(os.path.join(base, 'libvlccore.dll'))
 
     os.environ['PYTHON_VLC_MODULE_PATH'] = base
@@ -64,31 +63,111 @@ _setup_vlc()
 import vlc
 
 
+# ── Colour palette ───────────────────────────────────────────
+BG_DARK      = "#0a0a0a"
+BG_SURFACE   = "#161618"
+BG_ELEVATED  = "#1e1e22"
+BG_HOVER     = "#2a2a30"
+ACCENT       = "#6c5ce7"
+ACCENT_HOVER = "#7f70f0"
+ACCENT_DIM   = "#4a3fb5"
+TEXT_PRIMARY  = "#e8e8ec"
+TEXT_SECONDARY = "#8e8e96"
+TEXT_MUTED    = "#5c5c64"
+BORDER       = "#2a2a30"
+DANGER       = "#e74c3c"
+DANGER_HOVER = "#ff6b5a"
+SUCCESS      = "#2ecc71"
+
+
+# ── Shared stylesheet ────────────────────────────────────────
+APP_STYLESHEET = f"""
+QMainWindow {{
+    background-color: {BG_DARK};
+}}
+QWidget {{
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 13px;
+}}
+QLabel {{
+    color: {TEXT_PRIMARY};
+}}
+QPushButton {{
+    background-color: {BG_ELEVATED};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER};
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 12px;
+}}
+QPushButton:hover {{
+    background-color: {BG_HOVER};
+    border-color: {TEXT_MUTED};
+}}
+QPushButton:pressed {{
+    background-color: {BG_SURFACE};
+}}
+QPushButton:disabled {{
+    color: {TEXT_MUTED};
+    background-color: {BG_SURFACE};
+    border-color: {BG_ELEVATED};
+}}
+QPushButton[accent="true"] {{
+    background-color: {ACCENT};
+    border: none;
+    color: white;
+    font-weight: 600;
+}}
+QPushButton[accent="true"]:hover {{
+    background-color: {ACCENT_HOVER};
+}}
+QPushButton[accent="true"]:pressed {{
+    background-color: {ACCENT_DIM};
+}}
+QPushButton[danger="true"] {{
+    background-color: transparent;
+    border: 1px solid {DANGER};
+    color: {DANGER};
+}}
+QPushButton[danger="true"]:hover {{
+    background-color: {DANGER};
+    color: white;
+}}
+QMessageBox {{
+    background-color: {BG_SURFACE};
+}}
+QMessageBox QLabel {{
+    color: {TEXT_PRIMARY};
+    font-size: 13px;
+    min-width: 280px;
+}}
+QMessageBox QPushButton {{
+    min-width: 80px;
+    padding: 6px 20px;
+}}
+"""
+
+
 class MediaType(Enum):
-    """Enumeration for media types"""
     IMAGE = "image"
     VIDEO = "video"
     UNKNOWN = "unknown"
 
 
 class RandomizationMode(Enum):
-    """Enumeration for randomization modes"""
-    GLOBAL_SHUFFLE = "Global"
+    GLOBAL_SHUFFLE = "Global Shuffle"
     FOLDER_BALANCED = "Folder-Balanced"
 
 
 class MediaItem:
-    """Represents a single media item (image or video)"""
-    
     def __init__(self, path: Path):
         self.path = path
         self.type = self._determine_type()
-    
+
     def _determine_type(self) -> MediaType:
-        """Determine if the file is an image or video"""
         image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.ico'}
         video_extensions = {'.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.3gp'}
-        
         ext = self.path.suffix.lower()
         if ext in image_extensions:
             return MediaType.IMAGE
@@ -98,53 +177,43 @@ class MediaItem:
 
 
 class MediaScanner(QThread):
-    """Thread for scanning folders to find media files"""
-    
     progress = pyqtSignal(str)
     finished = pyqtSignal(list)
     error = pyqtSignal(str)
-    
+
     def __init__(self, folder_path: Path):
         super().__init__()
         self.folder_path = folder_path
         self._is_running = True
-    
+
     def run(self):
-        """Scan folder recursively for media files"""
         try:
             media_items = []
-            
             if not self.folder_path.exists():
                 self.error.emit(f"Folder does not exist: {self.folder_path}")
                 return
-            
             for file_path in self.folder_path.rglob('*'):
                 if not self._is_running:
                     break
-                
                 if file_path.is_file():
                     item = MediaItem(file_path)
                     if item.type != MediaType.UNKNOWN:
                         media_items.append(item)
-                        self.progress.emit(f"Found {len(media_items)} media files...")
-            
+                        if len(media_items) % 50 == 0:
+                            self.progress.emit(f"Scanning... {len(media_items)} files found")
             if not media_items:
-                self.error.emit("No media files found in the selected folder")
+                self.error.emit("No media files found in the selected folder.")
             else:
                 self.finished.emit(media_items)
-        
         except Exception as e:
             self.error.emit(f"Error scanning folder: {str(e)}")
-    
+
     def stop(self):
-        """Stop the scanning thread"""
         self._is_running = False
 
 
 class UpdateChecker(QThread):
-    """Thread for checking GitHub releases for updates"""
-
-    result = pyqtSignal(dict)   # update info or empty dict
+    result = pyqtSignal(dict)
     error = pyqtSignal(str)
 
     def __init__(self, is_auto: bool = False):
@@ -170,16 +239,13 @@ class UpdateChecker(QThread):
                 self.result.emit({})
                 return
 
-            # Find .exe asset (Inno Setup installer)
             assets = release.get("assets", [])
             exe_asset = next((a for a in assets if a["name"].endswith(".exe")), None)
             if not exe_asset:
                 self.result.emit({})
                 return
 
-            # Extract SHA256 from release body
             body = release.get("body", "")
-            import re
             sha_match = re.search(r"SHA256:\s*([a-fA-F0-9]{64})", body, re.IGNORECASE)
             expected_sha = sha_match.group(1).lower() if sha_match else None
 
@@ -197,7 +263,7 @@ class UpdateChecker(QThread):
                 if not msg:
                     msg = type(e).__name__
                 if hasattr(e, 'code'):
-                    msg = f"HTTP {e.code}: {e.reason}" if hasattr(e, 'reason') else f"HTTP {e.code}"
+                    msg = f"HTTP {e.code}: {getattr(e, 'reason', 'Unknown error')}"
                 self.error.emit(msg)
             else:
                 self.result.emit({})
@@ -212,10 +278,8 @@ class UpdateChecker(QThread):
 
 
 class UpdateDownloader(QThread):
-    """Thread for downloading an update installer with SHA256 verification"""
-
-    progress = pyqtSignal(int)       # 0-100
-    finished = pyqtSignal(str)       # file path on success
+    progress = pyqtSignal(int)
+    finished = pyqtSignal(str)
     error = pyqtSignal(str)
 
     def __init__(self, url: str, file_name: str, expected_sha256: Optional[str]):
@@ -228,13 +292,11 @@ class UpdateDownloader(QThread):
         try:
             temp_dir = tempfile.gettempdir()
             dest = os.path.join(temp_dir, f"gkmr_{int(datetime.now().timestamp())}_{self.file_name}")
-
             req = Request(self.url, headers={"User-Agent": f"GKMediaRandomizer/{APP_VERSION}"})
             resp = urlopen(req, timeout=120)
             total = int(resp.headers.get("Content-Length", 0))
             sha = hashlib.sha256()
             downloaded = 0
-
             with open(dest, "wb") as f:
                 while True:
                     chunk = resp.read(65536)
@@ -246,7 +308,6 @@ class UpdateDownloader(QThread):
                     if total > 0:
                         self.progress.emit(int(downloaded * 100 / total))
 
-            # Verify SHA256
             actual_sha = sha.hexdigest()
             if self.expected_sha256 and actual_sha != self.expected_sha256:
                 try:
@@ -256,18 +317,90 @@ class UpdateDownloader(QThread):
                 self.error.emit(
                     f"Integrity check failed.\n\n"
                     f"Expected: {self.expected_sha256}\n"
-                    f"Actual: {actual_sha}\n\n"
-                    f"The file has been deleted for safety."
+                    f"Actual:   {actual_sha}\n\n"
+                    f"The downloaded file has been deleted for safety."
                 )
                 return
-
             self.finished.emit(dest)
         except Exception as e:
-            self.error.emit(str(e))
+            self.error.emit(str(e) or type(e).__name__)
 
 
+# ── About Dialog ─────────────────────────────────────────────
+class AboutDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("About GKMediaRandomizer")
+        self.setFixedSize(400, 280)
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: {BG_SURFACE};
+                border: 1px solid {BORDER};
+            }}
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(12)
+        layout.setContentsMargins(32, 28, 32, 24)
+
+        # App name
+        title = QLabel("GKMediaRandomizer")
+        title.setFont(QFont("Segoe UI", 20, QFont.Bold))
+        title.setStyleSheet(f"color: {TEXT_PRIMARY};")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        # Version
+        ver = QLabel(f"Version {APP_VERSION}")
+        ver.setStyleSheet(f"color: {ACCENT}; font-size: 13px;")
+        ver.setAlignment(Qt.AlignCenter)
+        layout.addWidget(ver)
+
+        layout.addSpacing(8)
+
+        # Description
+        desc = QLabel("A media randomizer that shuffles and displays\nimages and videos from your folders.")
+        desc.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 12px;")
+        desc.setAlignment(Qt.AlignCenter)
+        desc.setWordWrap(True)
+        layout.addWidget(desc)
+
+        layout.addSpacing(4)
+
+        # Author
+        author = QLabel("by George Karagioules")
+        author.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
+        author.setAlignment(Qt.AlignCenter)
+        layout.addWidget(author)
+
+        layout.addStretch()
+
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.setProperty("accent", True)
+        close_btn.setFixedWidth(100)
+        close_btn.clicked.connect(self.accept)
+        close_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {ACCENT};
+                border: none;
+                color: white;
+                font-weight: 600;
+                padding: 8px 20px;
+                border-radius: 6px;
+            }}
+            QPushButton:hover {{ background-color: {ACCENT_HOVER}; }}
+        """)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        btn_layout.addWidget(close_btn)
+        btn_layout.addStretch()
+        layout.addLayout(btn_layout)
+
+
+# ── Main Application ─────────────────────────────────────────
 class GKMediaRandomizerApp(QMainWindow):
-    """Main application window"""
 
     def __init__(self):
         super().__init__()
@@ -278,201 +411,240 @@ class GKMediaRandomizerApp(QMainWindow):
         self.scanner_thread: Optional[MediaScanner] = None
         self._update_checker: Optional[UpdateChecker] = None
         self._update_downloader: Optional[UpdateDownloader] = None
+        self._update_is_auto = False
         self.config_file = Path.home() / ".gkmedia_randomizer_config.json"
         self._app_data_dir = Path(os.environ.get("APPDATA", Path.home())) / "GKMediaRandomizer"
         self._app_data_dir.mkdir(parents=True, exist_ok=True)
         self._dismissed_file = self._app_data_dir / "dismissed_update.txt"
         self._pending_file = self._app_data_dir / "pending_update.txt"
 
-        # Load settings
         self.load_settings()
+        self._build_ui()
+        self._setup_shortcuts()
 
-        # Setup UI
-        self.init_ui()
-
-        # Setup keyboard shortcuts
-        self.setup_shortcuts()
-
-        # Check for failed pending update, then auto-check for new updates
         self._check_pending_update_failed()
         self._cleanup_orphaned_scripts()
-        QTimer.singleShot(1500, lambda: self._check_for_updates(is_auto=True))
-    
-    def init_ui(self):
-        """Initialize the user interface"""
-        self.setWindowTitle("GKMediaRandomizer")
-        self.setGeometry(100, 100, 1000, 750)
-        
-        # Create central widget and layout
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Stacked widget to switch between image and video display
-        self.media_stack = QStackedWidget()
-        self.media_stack.setMinimumSize(QSize(800, 600))
-        self.media_stack.setStyleSheet("background-color: black;")
+        QTimer.singleShot(2000, lambda: self._check_for_updates(is_auto=True))
 
-        # Image display (page 0)
+    # ── UI Construction ──────────────────────────────────────
+    def _build_ui(self):
+        self.setWindowTitle("GK Media Randomizer")
+        self.setMinimumSize(900, 650)
+        self.resize(1100, 780)
+        self.setStyleSheet(APP_STYLESHEET)
+
+        central = QWidget()
+        self.setCentralWidget(central)
+        root = QVBoxLayout(central)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        # ── Top bar ──────────────────────────────────────────
+        top_bar = QWidget()
+        top_bar.setFixedHeight(42)
+        top_bar.setStyleSheet(f"background-color: {BG_SURFACE}; border-bottom: 1px solid {BORDER};")
+        top_layout = QHBoxLayout(top_bar)
+        top_layout.setContentsMargins(16, 0, 16, 0)
+        top_layout.setSpacing(12)
+
+        self.file_counter = QLabel("")
+        self.file_counter.setStyleSheet(f"""
+            color: {ACCENT};
+            font-weight: 600;
+            font-size: 12px;
+            font-family: "Cascadia Code", "Consolas", monospace;
+        """)
+        top_layout.addWidget(self.file_counter)
+
+        self.file_name_label = QLabel("GK Media Randomizer")
+        self.file_name_label.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 12px;")
+        self.file_name_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        top_layout.addWidget(self.file_name_label)
+
+        self.mode_indicator = QLabel(self._mode_display())
+        self.mode_indicator.setStyleSheet(f"""
+            color: {TEXT_MUTED};
+            font-size: 11px;
+            padding: 3px 10px;
+            border: 1px solid {BORDER};
+            border-radius: 10px;
+        """)
+        top_layout.addWidget(self.mode_indicator)
+
+        root.addWidget(top_bar)
+
+        # ── Media area ───────────────────────────────────────
+        self.media_stack = QStackedWidget()
+        self.media_stack.setStyleSheet(f"background-color: {BG_DARK};")
+
+        # Page 0: Image / Welcome
         self.media_label = QLabel()
-        self.media_label.setStyleSheet("background-color: black;")
         self.media_label.setAlignment(Qt.AlignCenter)
+        self.media_label.setStyleSheet(f"background-color: {BG_DARK};")
         self.media_stack.addWidget(self.media_label)
 
-        # Video display (page 1) — QFrame for VLC to render into
+        # Page 1: Video
         self.video_frame = QFrame()
-        self.video_frame.setStyleSheet("background-color: black;")
+        self.video_frame.setStyleSheet(f"background-color: {BG_DARK};")
         self.media_stack.addWidget(self.video_frame)
 
-        # VLC player
+        root.addWidget(self.media_stack, 1)
+
+        # VLC
         self.vlc_instance = vlc.Instance('--quiet', '--no-video-title-show')
         self.vlc_player = self.vlc_instance.media_player_new()
-
-        # Timer to detect end-of-media for looping
         self._vlc_poll_timer = QTimer()
         self._vlc_poll_timer.setInterval(250)
         self._vlc_poll_timer.timeout.connect(self._vlc_check_state)
 
-        main_layout.addWidget(self.media_stack)
-        
-        # Control panel
-        control_layout = QHBoxLayout()
-        
-        # File info
-        self.info_label = QLabel("Select a folder to start")
-        self.info_label.setStyleSheet("color: white; background-color: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px;")
-        control_layout.addWidget(self.info_label)
-        
-        # Folder button
-        self.folder_btn = QPushButton("📁 Select Folder")
-        self.folder_btn.clicked.connect(self.select_folder)
-        control_layout.addWidget(self.folder_btn)
-        
-        # Randomization mode button
-        self.mode_btn = QPushButton(self.randomization_mode.value)
-        self.mode_btn.clicked.connect(self.toggle_randomization_mode)
-        control_layout.addWidget(self.mode_btn)
-        
-        # Delete button
-        self.delete_btn = QPushButton("🗑️ Delete")
-        self.delete_btn.clicked.connect(self.delete_current_item)
-        self.delete_btn.setEnabled(False)
-        control_layout.addWidget(self.delete_btn)
+        # ── Bottom toolbar ───────────────────────────────────
+        toolbar = QWidget()
+        toolbar.setFixedHeight(56)
+        toolbar.setStyleSheet(f"background-color: {BG_SURFACE}; border-top: 1px solid {BORDER};")
+        tb_layout = QHBoxLayout(toolbar)
+        tb_layout.setContentsMargins(16, 0, 16, 0)
+        tb_layout.setSpacing(8)
 
-        # Version label + update check button
+        # Left group: nav + actions
+        self.btn_prev = self._make_btn("  Prev", self.show_previous)
+        self.btn_next = self._make_btn("Next  ", self.show_next)
+        self.btn_folder = self._make_btn("Open Folder", self.select_folder, accent=True)
+        self.btn_mode = self._make_btn(self._mode_short(), self.toggle_randomization_mode)
+        self.btn_delete = self._make_btn("Delete", self.delete_current_item, danger=True)
+        self.btn_delete.setEnabled(False)
+
+        tb_layout.addWidget(self.btn_prev)
+        tb_layout.addWidget(self.btn_next)
+        tb_layout.addSpacing(8)
+        tb_layout.addWidget(self.btn_folder)
+        tb_layout.addWidget(self.btn_mode)
+        tb_layout.addWidget(self.btn_delete)
+
+        tb_layout.addStretch()
+
+        # Right group: version, about, update
         self.version_label = QLabel(f"v{APP_VERSION}")
-        self.version_label.setStyleSheet("color: rgba(255,255,255,0.5); padding: 0 8px; font-size: 11px;")
-        control_layout.addWidget(self.version_label)
+        self.version_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
+        tb_layout.addWidget(self.version_label)
 
-        self.update_btn = QPushButton("Check for Updates")
-        self.update_btn.setStyleSheet("""
-            QPushButton { background-color: #37474f; font-size: 11px; padding: 6px 10px; }
-            QPushButton:hover { background-color: #455a64; }
-        """)
-        self.update_btn.clicked.connect(lambda: self._check_for_updates(is_auto=False))
-        control_layout.addWidget(self.update_btn)
+        self.btn_about = self._make_btn("About", self._show_about)
+        tb_layout.addWidget(self.btn_about)
 
-        main_layout.addLayout(control_layout)
-        
-        # Set stylesheet
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: black;
-            }
-            QPushButton {
-                background-color: #0d47a1;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1565c0;
-            }
-            QPushButton:pressed {
-                background-color: #0c3aa3;
-            }
-            QLabel {
-                color: white;
-            }
-        """)
-        
-        self.show_welcome_screen()
+        self.btn_update = self._make_btn("Check for Updates", lambda: self._check_for_updates(is_auto=False))
+        tb_layout.addWidget(self.btn_update)
+
+        root.addWidget(toolbar)
+
+        self._show_welcome()
         self.show()
-    
-    def show_welcome_screen(self):
-        """Show welcome screen when no media is loaded"""
-        if not self.media_items:
-            self._stop_video()
-            self.media_stack.setCurrentIndex(0)
-            pixmap = QPixmap(800, 600)
-            pixmap.fill(Qt.black)
 
-            self.info_label.setText("No folder selected. Click 'Select Folder' to begin.")
-            self.media_label.setPixmap(pixmap)
-            self.delete_btn.setEnabled(False)
-    
+    def _make_btn(self, text: str, callback, accent=False, danger=False) -> QPushButton:
+        btn = QPushButton(text)
+        btn.setCursor(Qt.PointingHandCursor)
+        if accent:
+            btn.setProperty("accent", True)
+        if danger:
+            btn.setProperty("danger", True)
+        # Force style re-evaluation after setting properties
+        btn.style().unpolish(btn)
+        btn.style().polish(btn)
+        btn.clicked.connect(callback)
+        return btn
+
+    def _mode_display(self) -> str:
+        if self.randomization_mode == RandomizationMode.FOLDER_BALANCED:
+            return "Folder-Balanced"
+        return "Global Shuffle"
+
+    def _mode_short(self) -> str:
+        if self.randomization_mode == RandomizationMode.FOLDER_BALANCED:
+            return "Folder-Balanced"
+        return "Global Shuffle"
+
+    # ── Welcome Screen ───────────────────────────────────────
+    def _show_welcome(self):
+        self._stop_video()
+        self.media_stack.setCurrentIndex(0)
+        self.file_counter.setText("")
+        self.file_name_label.setText("GK Media Randomizer")
+        self.btn_delete.setEnabled(False)
+
+        # Build a styled welcome message
+        self.media_label.setText("")
+        welcome = QPixmap(self.media_stack.size())
+        welcome.fill(QColor(BG_DARK))
+        painter = QPainter(welcome)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        # Title
+        painter.setPen(QColor(TEXT_PRIMARY))
+        painter.setFont(QFont("Segoe UI", 28, QFont.Bold))
+        painter.drawText(welcome.rect().adjusted(0, -60, 0, 0), Qt.AlignCenter, "GK Media Randomizer")
+
+        # Subtitle
+        painter.setPen(QColor(TEXT_SECONDARY))
+        painter.setFont(QFont("Segoe UI", 13))
+        painter.drawText(welcome.rect().adjusted(0, 10, 0, 0), Qt.AlignCenter, "Click \"Open Folder\" to load media")
+
+        # Hint
+        painter.setPen(QColor(TEXT_MUTED))
+        painter.setFont(QFont("Segoe UI", 11))
+        painter.drawText(welcome.rect().adjusted(0, 60, 0, 0), Qt.AlignCenter,
+                         "Arrow keys to navigate  |  Space for next  |  Del to remove")
+
+        painter.end()
+        self.media_label.setPixmap(welcome)
+
+    # ── About Dialog ─────────────────────────────────────────
+    def _show_about(self):
+        dlg = AboutDialog(self)
+        dlg.exec_()
+
+    # ── Folder & Scanning ────────────────────────────────────
     def select_folder(self):
-        """Open folder selection dialog"""
+        start_dir = str(self.current_folder) if self.current_folder and self.current_folder.exists() else str(Path.home())
         folder_path = QFileDialog.getExistingDirectory(
-            self,
-            "Select a folder containing images and videos",
-            str(Path.home()),
-            options=QFileDialog.ShowDirsOnly
+            self, "Select a folder containing images and videos",
+            start_dir, options=QFileDialog.ShowDirsOnly
         )
-        
         if folder_path:
             self.current_folder = Path(folder_path)
             self.scan_folder()
-    
+
     def scan_folder(self):
-        """Scan the selected folder for media files"""
         if not self.current_folder:
             return
-        
-        # Create and start scanner thread
         self.scanner_thread = MediaScanner(self.current_folder)
-        self.scanner_thread.progress.connect(self.update_progress)
-        self.scanner_thread.finished.connect(self.on_scan_finished)
-        self.scanner_thread.error.connect(self.on_scan_error)
-        
-        # Show progress
-        self.info_label.setText(f"Scanning: {self.current_folder.name}...")
-        self.media_label.setText("Scanning folder...\nPlease wait...")
+        self.scanner_thread.progress.connect(lambda msg: self.file_name_label.setText(msg))
+        self.scanner_thread.finished.connect(self._on_scan_finished)
+        self.scanner_thread.error.connect(self._on_scan_error)
+        self.file_name_label.setText(f"Scanning {self.current_folder.name}...")
+        self.file_counter.setText("...")
         self.scanner_thread.start()
-    
-    def update_progress(self, message: str):
-        """Update progress message"""
-        self.info_label.setText(message)
-    
-    def on_scan_finished(self, items: List[MediaItem]):
-        """Handle scan completion"""
+
+    def _on_scan_finished(self, items: List[MediaItem]):
         self.media_items = self._apply_randomization(items)
         self.current_index = 0
-        self.info_label.setText(f"Loaded {len(self.media_items)} media files")
-        self.delete_btn.setEnabled(True)
+        self.btn_delete.setEnabled(True)
         self.save_settings()
-        self.display_current_media()
+        self._display_current()
 
+    def _on_scan_error(self, error_message: str):
+        QMessageBox.warning(self, "Scan Error", error_message)
+        self._show_welcome()
+
+    # ── Randomization ────────────────────────────────────────
     def _apply_randomization(self, items: List[MediaItem]) -> List[MediaItem]:
-        """Shuffle items according to the current randomization mode."""
         if not items:
             return items
-
         if self.randomization_mode == RandomizationMode.FOLDER_BALANCED:
-            # Group by parent folder, shuffle within each folder, then
-            # interleave folders round-robin so every folder gets fair coverage
             buckets: Dict[Path, List[MediaItem]] = defaultdict(list)
             for item in items:
                 buckets[item.path.parent].append(item)
-
             folder_lists = list(buckets.values())
             for lst in folder_lists:
                 random.shuffle(lst)
             random.shuffle(folder_lists)
-
             result: List[MediaItem] = []
             while folder_lists:
                 still_going = []
@@ -484,118 +656,95 @@ class GKMediaRandomizerApp(QMainWindow):
                 folder_lists = still_going
             return result
         else:
-            # GLOBAL_SHUFFLE: Fisher-Yates via random.shuffle with fresh entropy
             shuffled = list(items)
             random.seed(os.urandom(32))
             random.shuffle(shuffled)
-            # Second pass with a different seed breaks up any accidental locality
             random.seed(os.urandom(32))
             random.shuffle(shuffled)
             return shuffled
-    
-    def on_scan_error(self, error_message: str):
-        """Handle scan error"""
-        QMessageBox.warning(self, "Error", error_message)
-        self.show_welcome_screen()
-    
-    def display_current_media(self):
-        """Display the current media item"""
+
+    # ── Media Display ────────────────────────────────────────
+    def _display_current(self):
         if not self.media_items or self.current_index < 0 or self.current_index >= len(self.media_items):
-            self.show_welcome_screen()
+            self._show_welcome()
             return
-        
+
         item = self.media_items[self.current_index]
-        file_name = item.path.name
-        file_info = f"{self.current_index + 1} / {len(self.media_items)} - {file_name}"
-        self.info_label.setText(file_info)
-        
+        self.file_counter.setText(f"{self.current_index + 1} / {len(self.media_items)}")
+        self.file_name_label.setText(item.path.name)
+
         if item.type == MediaType.IMAGE:
-            self.display_image(item)
+            self._display_image(item)
         elif item.type == MediaType.VIDEO:
-            self.display_video(item)
-    
-    def display_image(self, item: MediaItem):
-        """Display an image"""
+            self._display_video(item)
+
+    def _display_image(self, item: MediaItem):
         self._stop_video()
         self.media_stack.setCurrentIndex(0)
         try:
             pixmap = QPixmap(str(item.path))
             if pixmap.isNull():
-                self.media_label.setText("Error loading image")
+                self.media_label.setText("Could not load image")
                 return
-            
-            # Scale to fit the label
             label_size = self.media_label.size()
-            scaled_pixmap = pixmap.scaled(label_size.width(), label_size.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            self.media_label.setPixmap(scaled_pixmap)
+            scaled = pixmap.scaled(label_size.width(), label_size.height(),
+                                   Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.media_label.setPixmap(scaled)
         except Exception as e:
-            self.media_label.setText(f"Error loading image: {str(e)}")
-    
-    def display_video(self, item: MediaItem):
-        """Play a video using VLC"""
+            self.media_label.setText(f"Error: {e}")
+
+    def _display_video(self, item: MediaItem):
         self._stop_video()
         self.media_stack.setCurrentIndex(1)
-
-        # Attach VLC to the video frame's native window handle
         if sys.platform == 'win32':
             self.vlc_player.set_hwnd(int(self.video_frame.winId()))
         else:
             self.vlc_player.set_xwindow(int(self.video_frame.winId()))
-
         media = self.vlc_instance.media_new(str(item.path))
         self.vlc_player.set_media(media)
         self.vlc_player.play()
         self._vlc_poll_timer.start()
 
     def _vlc_check_state(self):
-        """Poll VLC state to loop video at end"""
         state = self.vlc_player.get_state()
         if state == vlc.State.Ended:
             self.vlc_player.set_position(0)
             self.vlc_player.play()
         elif state == vlc.State.Error:
             self._vlc_poll_timer.stop()
-            self.info_label.setText("Playback error: VLC could not play this file")
+            self.file_name_label.setText("Playback error")
 
     def _stop_video(self):
-        """Stop any playing video"""
         self._vlc_poll_timer.stop()
         self.vlc_player.stop()
-    
+
+    # ── Navigation ───────────────────────────────────────────
     def show_next(self):
-        """Show next media item"""
         if not self.media_items:
             return
-        
         self.current_index = (self.current_index + 1) % len(self.media_items)
-        self.display_current_media()
-    
+        self._display_current()
+
     def show_previous(self):
-        """Show previous media item"""
         if not self.media_items:
             return
-        
         self.current_index = (self.current_index - 1) % len(self.media_items)
-        self.display_current_media()
-    
+        self._display_current()
+
     def toggle_randomization_mode(self):
-        """Toggle between randomization modes"""
         if self.randomization_mode == RandomizationMode.GLOBAL_SHUFFLE:
             self.randomization_mode = RandomizationMode.FOLDER_BALANCED
         else:
             self.randomization_mode = RandomizationMode.GLOBAL_SHUFFLE
-        
-        self.mode_btn.setText(self.randomization_mode.value)
+        self.btn_mode.setText(self._mode_short())
+        self.mode_indicator.setText(self._mode_display())
         self.save_settings()
-        
         if self.media_items:
             self.scan_folder()
-    
+
     def delete_current_item(self):
-        """Delete current item to recycle bin — no confirmation dialog."""
         if not self.media_items or self.current_index < 0:
             return
-
         item = self.media_items[self.current_index]
         try:
             import send2trash
@@ -604,50 +753,41 @@ class GKMediaRandomizerApp(QMainWindow):
             try:
                 os.remove(str(item.path))
             except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to delete file: {str(e)}")
+                QMessageBox.critical(self, "Delete Failed", f"Could not delete file:\n{e}")
                 return
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to delete file: {str(e)}")
+            QMessageBox.critical(self, "Delete Failed", f"Could not delete file:\n{e}")
             return
-
         self.media_items.pop(self.current_index)
         if not self.media_items:
-            self.show_welcome_screen()
+            self._show_welcome()
         else:
             self.current_index = min(self.current_index, len(self.media_items) - 1)
-            self.display_current_media()
-    
-    def setup_shortcuts(self):
-        """Setup keyboard shortcuts"""
-        # Right arrow or Space for next
-        self.next_shortcut = self.add_shortcut(Qt.Key_Right, self.show_next)
-        self.add_shortcut(Qt.Key_Space, self.show_next)
-        
-        # Left arrow for previous
-        self.prev_shortcut = self.add_shortcut(Qt.Key_Left, self.show_previous)
-    
-    def add_shortcut(self, key: int, callback):
-        """Add a keyboard shortcut"""
-        from PyQt5.QtWidgets import QShortcut
-        shortcut = QShortcut(QKeySequence(key), self)
-        shortcut.activated.connect(callback)
-        return shortcut
-    
+            self._display_current()
+
+    # ── Shortcuts ────────────────────────────────────────────
+    def _setup_shortcuts(self):
+        for key, fn in [
+            (Qt.Key_Right, self.show_next),
+            (Qt.Key_Space, self.show_next),
+            (Qt.Key_Left, self.show_previous),
+        ]:
+            s = QShortcut(QKeySequence(key), self)
+            s.activated.connect(fn)
+
     def keyPressEvent(self, event):
-        """Handle key press events"""
-        if event.key() == Qt.Key_Right or event.key() == Qt.Key_Space:
+        key = event.key()
+        if key in (Qt.Key_Right, Qt.Key_Space):
             self.show_next()
-        elif event.key() == Qt.Key_Left:
+        elif key == Qt.Key_Left:
             self.show_previous()
-        elif event.key() == Qt.Key_Delete:
+        elif key == Qt.Key_Delete:
             self.delete_current_item()
         else:
             super().keyPressEvent(event)
-    
-    # ── Auto-update system ──────────────────────────────────────
 
+    # ── Auto-update system ───────────────────────────────────
     def _check_pending_update_failed(self):
-        """On startup, check if a previous update attempt failed."""
         try:
             if not self._pending_file.exists():
                 return
@@ -667,7 +807,6 @@ class GKMediaRandomizerApp(QMainWindow):
             pass
 
     def _cleanup_orphaned_scripts(self):
-        """Remove leftover update helper scripts from temp."""
         try:
             tmp = tempfile.gettempdir()
             for f in os.listdir(tmp):
@@ -694,21 +833,20 @@ class GKMediaRandomizerApp(QMainWindow):
             pass
 
     def _check_for_updates(self, is_auto: bool = False):
-        """Start an update check in a background thread."""
         if self._update_checker and self._update_checker.isRunning():
             return
         self._update_is_auto = is_auto
         if not is_auto:
-            self.update_btn.setText("Checking...")
-            self.update_btn.setEnabled(False)
+            self.btn_update.setText("Checking...")
+            self.btn_update.setEnabled(False)
         self._update_checker = UpdateChecker(is_auto=is_auto)
         self._update_checker.result.connect(self._on_update_check_result)
         self._update_checker.error.connect(self._on_update_check_error)
         self._update_checker.start()
 
     def _on_update_check_result(self, info: dict):
-        self.update_btn.setText("Check for Updates")
-        self.update_btn.setEnabled(True)
+        self.btn_update.setText("Check for Updates")
+        self.btn_update.setEnabled(True)
 
         if not info:
             if not self._update_is_auto:
@@ -718,7 +856,6 @@ class GKMediaRandomizerApp(QMainWindow):
         is_auto = info.get("is_auto", False)
         tag = info["version"]
 
-        # Skip dismissed versions on auto-check
         if is_auto and self._is_dismissed(tag):
             return
 
@@ -729,48 +866,45 @@ class GKMediaRandomizerApp(QMainWindow):
             f"Download and install now?",
             QMessageBox.Yes | QMessageBox.No,
         )
-
         if reply == QMessageBox.Yes:
             self._download_update(info)
         elif is_auto:
             self._dismiss_version(tag)
 
     def _on_update_check_error(self, error_msg: str):
-        self.update_btn.setText("Check for Updates")
-        self.update_btn.setEnabled(True)
-        QMessageBox.warning(self, "Update Check Failed", f"Could not check for updates:\n{error_msg}")
+        self.btn_update.setText("Check for Updates")
+        self.btn_update.setEnabled(True)
+        QMessageBox.warning(
+            self, "Update Check Failed",
+            f"Could not check for updates:\n\n{error_msg}"
+        )
 
     def _download_update(self, info: dict):
-        """Download the update installer."""
-        self.update_btn.setText("Downloading: 0%")
-        self.update_btn.setEnabled(False)
+        self.btn_update.setText("Downloading: 0%")
+        self.btn_update.setEnabled(False)
         self._pending_update_info = info
-
         self._update_downloader = UpdateDownloader(
             info["download_url"], info["file_name"], info.get("expected_sha256")
         )
         self._update_downloader.progress.connect(
-            lambda pct: self.update_btn.setText(f"Downloading: {pct}%")
+            lambda pct: self.btn_update.setText(f"Downloading: {pct}%")
         )
         self._update_downloader.finished.connect(self._on_download_finished)
         self._update_downloader.error.connect(self._on_download_error)
         self._update_downloader.start()
 
     def _on_download_finished(self, file_path: str):
-        self.update_btn.setText("Installing update...")
+        self.btn_update.setText("Installing...")
         self._install_update(file_path, self._pending_update_info["version"])
 
     def _on_download_error(self, error_msg: str):
-        self.update_btn.setText("Check for Updates")
-        self.update_btn.setEnabled(True)
+        self.btn_update.setText("Check for Updates")
+        self.btn_update.setEnabled(True)
         QMessageBox.critical(self, "Download Failed", error_msg)
 
     def _install_update(self, installer_path: str, version: str):
-        """Launch installer via PowerShell + VBScript (matches GKMD pattern) and quit."""
         if not os.path.exists(installer_path):
             return
-
-        # Write pending update marker
         try:
             self._pending_file.write_text(version, encoding="utf-8")
         except Exception:
@@ -780,7 +914,6 @@ class GKMediaRandomizerApp(QMainWindow):
         tmp = tempfile.gettempdir()
         ts = int(datetime.now().timestamp())
 
-        # PowerShell script: wait → run installer silently with UAC → relaunch
         ps1_path = os.path.join(tmp, f"gkmr_relaunch_{ts}.ps1")
         ps1_lines = [
             "Start-Sleep -Seconds 3",
@@ -792,7 +925,6 @@ class GKMediaRandomizerApp(QMainWindow):
         with open(ps1_path, "w", encoding="utf-8") as f:
             f.write("\r\n".join(ps1_lines))
 
-        # VBScript launcher for session isolation (UAC + GUI)
         vbs_path = os.path.join(tmp, f"gkmr_launcher_{ts}.vbs")
         vbs_lines = [
             'Set ws = CreateObject("WScript.Shell")',
@@ -802,73 +934,69 @@ class GKMediaRandomizerApp(QMainWindow):
         with open(vbs_path, "w", encoding="utf-8") as f:
             f.write("\r\n".join(vbs_lines))
 
-        # Launch VBScript detached
         subprocess.Popen(
             ["wscript.exe", vbs_path],
             creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
             close_fds=True,
         )
-
-        # Quit app so installer can replace files
         QTimer.singleShot(500, QApplication.instance().quit)
 
+    # ── Settings ─────────────────────────────────────────────
     def save_settings(self):
-        """Save application settings"""
         try:
             settings = {
                 "last_folder": str(self.current_folder) if self.current_folder else None,
                 "randomization_mode": self.randomization_mode.value,
             }
-            
             with open(self.config_file, 'w') as f:
                 json.dump(settings, f, indent=2)
-        except Exception as e:
-            print(f"Error saving settings: {e}")
-    
+        except Exception:
+            pass
+
     def load_settings(self):
-        """Load application settings"""
         try:
             if self.config_file.exists():
                 with open(self.config_file, 'r') as f:
                     settings = json.load(f)
-                    
                     if settings.get("last_folder"):
                         last_folder = Path(settings["last_folder"])
                         if last_folder.exists():
                             self.current_folder = last_folder
-                    
-                    mode_str = settings.get("randomization_mode", "Global")
-                    if mode_str == "Folder-Balanced":
+                    mode_str = settings.get("randomization_mode", "Global Shuffle")
+                    if mode_str in ("Folder-Balanced",):
                         self.randomization_mode = RandomizationMode.FOLDER_BALANCED
                     else:
                         self.randomization_mode = RandomizationMode.GLOBAL_SHUFFLE
-        except Exception as e:
-            print(f"Error loading settings: {e}")
-    
+        except Exception:
+            pass
+
     def closeEvent(self, event):
-        """Handle window close event"""
         self._stop_video()
         if self.scanner_thread and self.scanner_thread.isRunning():
             self.scanner_thread.stop()
             self.scanner_thread.wait()
-        
         self.save_settings()
         event.accept()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Re-render welcome screen on resize if no media loaded
+        if not self.media_items:
+            self._show_welcome()
 
+
+# ── Crash handler ────────────────────────────────────────────
 def _install_crash_handler():
-    """Write a detailed crash log to the Desktop on any unhandled exception."""
     desktop = Path.home() / "Desktop"
 
     def handle_exception(exc_type, exc_value, exc_tb):
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        log_name = f"GKMediaRandomizer_crash_{timestamp}.log"
-        log_path = desktop / log_name
-
+        log_path = desktop / f"GKMediaRandomizer_crash_{timestamp}.log"
         lines = [
             "GKMediaRandomizer — Crash Report",
             "=" * 50,
             f"Time     : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Version  : {APP_VERSION}",
             f"Python   : {sys.version}",
             f"Platform : {platform.platform()}",
             f"Exe      : {sys.executable}",
@@ -879,23 +1007,18 @@ def _install_crash_handler():
             "Traceback (most recent call last):",
             "".join(traceback.format_tb(exc_tb)),
         ]
-
         try:
             with open(log_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(lines))
         except Exception:
-            pass  # Never let the crash handler itself crash
-
+            pass
         sys.__excepthook__(exc_type, exc_value, exc_tb)
 
     sys.excepthook = handle_exception
 
 
 def main():
-    """Main entry point"""
     _install_crash_handler()
-
-    # Redirect stderr to a log file for the windowed exe so crashes aren't silent
     log_path = Path.home() / ".gkmedia_randomizer_error.log"
     try:
         sys.stderr = open(str(log_path), 'w')
@@ -904,12 +1027,9 @@ def main():
 
     app = QApplication(sys.argv)
 
-    # Set application icon (if exists)
     icon_path = Path(__file__).parent / "icon.ico"
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
-
-    # Also check next to the exe (for PyInstaller bundled app)
     if getattr(sys, 'frozen', False):
         exe_icon = Path(sys.executable).parent / "icon.ico"
         if exe_icon.exists():
