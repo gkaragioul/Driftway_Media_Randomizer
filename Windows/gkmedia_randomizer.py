@@ -4,7 +4,7 @@ GKMediaRandomizer - Windows app to randomly view images and videos
 Distributed as Inno Setup installer with auto-update from GitHub releases.
 """
 
-APP_VERSION = "2.1.6"
+APP_VERSION = "2.1.7"
 REPO_OWNER = "georgekgr12"
 REPO_NAME = "GK_MediaRandomizer_Releases"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
@@ -496,6 +496,7 @@ class GKMediaRandomizerApp(QMainWindow):
         self._update_checker: Optional[UpdateChecker] = None
         self._update_downloader: Optional[UpdateDownloader] = None
         self._update_is_auto = False
+        self._vlc_media: Optional[object] = None   # keeps VLC media object alive
         self.config_file = Path.home() / ".gkmedia_randomizer_config.json"
         self._app_data_dir = Path(os.environ.get("APPDATA", Path.home())) / "GKMediaRandomizer"
         self._app_data_dir.mkdir(parents=True, exist_ok=True)
@@ -753,13 +754,23 @@ class GKMediaRandomizerApp(QMainWindow):
 
     def _display_video(self, item: MediaItem):
         self._stop_video()
+
+        # Wait for VLC to fully stop before issuing new commands (stop() is async)
+        for _ in range(20):
+            state = self.vlc_player.get_state()
+            if state in (vlc.State.Stopped, vlc.State.NothingSpecial, vlc.State.Ended):
+                break
+            QApplication.processEvents()
+
         self.media_stack.setCurrentIndex(1)
         if sys.platform == 'win32':
             self.vlc_player.set_hwnd(int(self.video_frame.winId()))
         else:
             self.vlc_player.set_xwindow(int(self.video_frame.winId()))
-        media = self.vlc_instance.media_new(str(item.path))
-        self.vlc_player.set_media(media)
+
+        # Store as instance variable to prevent Python GC from collecting the wrapper
+        self._vlc_media = self.vlc_instance.media_new(str(item.path))
+        self.vlc_player.set_media(self._vlc_media)
         self.vlc_player.play()
         self._vlc_poll_timer.start()
 
@@ -775,6 +786,7 @@ class GKMediaRandomizerApp(QMainWindow):
     def _stop_video(self):
         self._vlc_poll_timer.stop()
         self.vlc_player.stop()
+        self._vlc_media = None
 
     # ── Navigation ───────────────────────────────────────────
     def show_next(self):
