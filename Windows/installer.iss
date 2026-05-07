@@ -12,6 +12,8 @@ AppId={#MyAppId}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppCopyright=Copyright (C) 2026 {#MyAppPublisher}
+AppContact=https://github.com/gkaragioul/Driftway_Media_Randomizer
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
@@ -26,6 +28,13 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 PrivilegesRequired=admin
 CloseApplications=force
+; File metadata shown in Setup.exe Properties → Details
+VersionInfoVersion={#MyAppVersion}.0
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoCopyright=Copyright (C) 2026 {#MyAppPublisher}
+VersionInfoProductName={#MyAppName}
+VersionInfoProductVersion={#MyAppVersion}
+VersionInfoDescription={#MyAppName} Setup
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

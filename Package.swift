@@ -2,19 +2,19 @@
 import PackageDescription
 
 let package = Package(
-    name: "PriveRandomizer",
+    name: "GKMediaRandomizer",
     platforms: [
         .macOS(.v12)
     ],
     products: [
-        .executable(name: "PriveRandomizer", targets: ["PriveRandomizer"])
+        .executable(name: "GKMediaRandomizer", targets: ["GKMediaRandomizer"])
     ],
     dependencies: [],
     targets: [
         .executableTarget(
-            name: "PriveRandomizer",
+            name: "GKMediaRandomizer",
             dependencies: [],
-            path: "Sources/PriveRandomizer"
+            path: "Sources/GKMediaRandomizer"
         )
     ]
 )

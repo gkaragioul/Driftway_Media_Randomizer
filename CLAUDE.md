@@ -4,7 +4,7 @@
 Cross-platform media viewer (images & videos) that randomizes playback order from a selected folder. Originally a Swift/SwiftUI macOS app, now also available as a Windows desktop app (Python + PySide6) distributed via Inno Setup installer with auto-updates.
 
 ## Architecture
-- **macOS**: Swift/SwiftUI native app (in `Sources/PriveRandomizer/`)
+- **macOS**: Swift/SwiftUI native app (in `Sources/GKMediaRandomizer/`)
 - **Windows**: Python 3 + PySide6 + VLC (in `Windows/`)
   - `gkmedia_randomizer.py` — Main application: UI, media playback, randomization, auto-update system
   - VLC bundled via PyInstaller for video playback
@@ -71,6 +71,6 @@ build.bat                            # Build installer .exe
 - Inno Setup installer with EULA, Program Files install, desktop shortcut
 
 ## Legacy Files (not part of Windows app)
-- `Sources/PriveRandomizer/` — macOS SwiftUI version (legacy name)
+- `Sources/GKMediaRandomizer/` — macOS SwiftUI version (legacy name)
 - `Package.swift` — Swift Package Manager manifest
 - `AppIcon.iconset/` — macOS icon assets
