@@ -27,27 +27,23 @@ echo.
 echo [OK] PyInstaller build complete.
 echo.
 
-REM Check for Inno Setup compiler
+REM Locate Inno Setup compiler (avoid nested else-if; CMD mis-parses paths with parens)
+set "ISCC="
 where iscc >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    REM Try default install locations
-    if exist "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" (
-        set ISCC="%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe"
-    ) else if exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" (
-        set ISCC="C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-    ) else (
-        echo [WARN] Inno Setup compiler (ISCC.exe) not found in PATH.
-        echo        Install Inno Setup 6 from https://jrsoftware.org/issetup.php
-        echo        The PyInstaller output is in dist\GKMediaRandomizer\
-        pause
-        exit /b 1
-    )
-) else (
-    set ISCC=iscc
+if %ERRORLEVEL% EQU 0 set "ISCC=iscc"
+if not defined ISCC if exist "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" set "ISCC=%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe"
+if not defined ISCC if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" set "ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
+if not defined ISCC if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe" set "ISCC=%ProgramFiles%\Inno Setup 6\ISCC.exe"
+if not defined ISCC (
+    echo [WARN] Inno Setup compiler ^(ISCC.exe^) not found.
+    echo        Install Inno Setup 6 from https://jrsoftware.org/issetup.php
+    echo        The PyInstaller output is in dist\GKMediaRandomizer\
+    pause
+    exit /b 1
 )
 
 echo [2/2] Running Inno Setup compiler...
-%ISCC% installer.iss
+"%ISCC%" installer.iss
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
@@ -59,13 +55,13 @@ if %ERRORLEVEL% NEQ 0 (
 echo.
 echo ============================================
 echo  Build successful!
-echo  Installer: dist-installer\GKMediaRandomizer_Setup_2.1.2.exe
+echo  Installer: dist-installer\GKMediaRandomizer_Setup.exe
 echo ============================================
 echo.
 
 REM Generate SHA256 for release notes
 echo SHA256 hash for release notes:
-certutil -hashfile "dist-installer\GKMediaRandomizer_Setup_2.1.2.exe" SHA256 | findstr /V "hash"
+certutil -hashfile "dist-installer\GKMediaRandomizer_Setup.exe" SHA256 | findstr /V "hash"
 echo.
 
 pause

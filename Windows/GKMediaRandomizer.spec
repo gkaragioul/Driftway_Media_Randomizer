@@ -29,7 +29,12 @@ a = Analysis(
     ['gkmedia_randomizer.py'],
     pathex=[],
     binaries=_vlc_bins,
-    datas=[('icon.ico', '.'), ('icon.png', '.')],
+    datas=[
+        ('icon.ico', '.'),
+        ('icon.png', '.'),
+        ('assets/license.txt', '.'),
+        ('assets/THIRD_PARTY_NOTICES.txt', '.'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

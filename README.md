@@ -19,7 +19,7 @@ A cross-platform media viewer that randomizes playback order from a selected fol
 
 | Platform | Stack | Location |
 |---|---|---|
-| **Windows** | Python 3 + PyQt5 + VLC | `Windows/` |
+| **Windows** | Python 3 + PySide6 + VLC | `Windows/` |
 | **macOS** | Swift + SwiftUI + AVKit | `Sources/` (legacy) |
 
 ## Keyboard Controls
@@ -41,7 +41,7 @@ Grab the latest installer from [Releases](https://github.com/georgekgr12/GK_Medi
 
 ```bash
 cd Windows
-pip install PyQt5 python-vlc Pillow send2trash
+pip install PySide6 python-vlc Pillow send2trash
 python gkmedia_randomizer.py          # Run in dev mode
 
 build.bat                             # Build installer .exe
@@ -72,7 +72,11 @@ The app checks GitHub for new releases on launch:
 
 ## License
 
-Freeware — see [license.txt](Windows/assets/license.txt) for details.
+Freeware — see [LICENSE](LICENSE) for terms and [Windows/assets/THIRD_PARTY_NOTICES.txt](Windows/assets/THIRD_PARTY_NOTICES.txt) for bundled third-party components.
+
+The application's own EULA restricts modification, reverse-engineering, and redistribution of the original portions authored by George Karagioules. Bundled third-party components (PySide6, Qt, libVLC, python-vlc, Pillow, send2trash, the Python runtime) retain their respective open-source licenses.
+
+For licensing inquiries, open an issue at https://github.com/gkaragioul/Driftway_Media_Randomizer.
 
 ---
 

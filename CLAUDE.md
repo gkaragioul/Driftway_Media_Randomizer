@@ -1,11 +1,11 @@
 # GKMediaRandomizer
 
 ## Project Overview
-Cross-platform media viewer (images & videos) that randomizes playback order from a selected folder. Originally a Swift/SwiftUI macOS app, now also available as a Windows desktop app (Python + PyQt5) distributed via Inno Setup installer with auto-updates.
+Cross-platform media viewer (images & videos) that randomizes playback order from a selected folder. Originally a Swift/SwiftUI macOS app, now also available as a Windows desktop app (Python + PySide6) distributed via Inno Setup installer with auto-updates.
 
 ## Architecture
 - **macOS**: Swift/SwiftUI native app (in `Sources/PriveRandomizer/`)
-- **Windows**: Python 3 + PyQt5 + VLC (in `Windows/`)
+- **Windows**: Python 3 + PySide6 + VLC (in `Windows/`)
   - `gkmedia_randomizer.py` — Main application: UI, media playback, randomization, auto-update system
   - VLC bundled via PyInstaller for video playback
 - **Build**: PyInstaller (one-dir) → Inno Setup installer `.exe`
@@ -16,13 +16,15 @@ Cross-platform media viewer (images & videos) that randomizes playback order fro
 - `Windows/GKMediaRandomizer.spec` — PyInstaller configuration (one-dir mode with VLC plugins)
 - `Windows/installer.iss` — Inno Setup installer script
 - `Windows/build.bat` — Build script (PyInstaller → Inno Setup)
-- `Windows/assets/license.txt` — Freeware EULA shown during installation
+- `Windows/assets/license.txt` — Freeware EULA shown during installation (also bundled into the install folder as `LICENSE.txt` and inside the PyInstaller archive for runtime display in About dialog)
+- `Windows/assets/THIRD_PARTY_NOTICES.txt` — Open-source attribution for bundled libraries (PySide6, Qt, libVLC, python-vlc, Pillow, send2trash, Python runtime)
+- `LICENSE` (repo root) — Mirror of the freeware EULA for GitHub auto-detection
 - `Windows/icon.ico` — Application icon
 
 ## Build & Run
 ```bash
 cd Windows
-pip install PyQt5 python-vlc Pillow send2trash
+pip install PySide6 python-vlc Pillow send2trash
 python gkmedia_randomizer.py          # Dev mode
 
 build.bat                            # Build installer .exe
@@ -45,7 +47,7 @@ build.bat                            # Build installer .exe
 - Version displayed in bottom control bar
 
 ## GitHub
-- Source repo: `https://github.com/georgekgr12/GK_MediaRandomizer_Source` (public, source code)
+- Source repo: `https://github.com/georgekgr12/GK_MediaRandomizer_Source` (private, source code)
 - Releases repo: `https://github.com/georgekgr12/GK_MediaRandomizer_Releases` (public, for auto-updates)
 - Releases should contain the Inno Setup `.exe` installer with SHA256 hash in release notes body
 - SHA256 format in release notes: `SHA256: <64-char hex>`

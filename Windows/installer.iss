@@ -2,7 +2,7 @@
 ; Builds from PyInstaller one-dir output in Windows\dist\GKMediaRandomizer\
 
 #define MyAppName "GKMediaRandomizer"
-#define MyAppVersion "2.1.7"
+#define MyAppVersion "2.2.0"
 #define MyAppPublisher "George Karagioules"
 #define MyAppExeName "GKMediaRandomizer.exe"
 #define MyAppId "{{B8F2D3A1-7C4E-4F5A-9B6D-2E8F1A3C5D7E}"
@@ -23,7 +23,7 @@ SolidCompression=yes
 SetupIconFile=icon.ico
 UninstallDisplayIcon={app}\icon.ico
 WizardStyle=modern
-ArchitecturesAllowed=x64
+ArchitecturesAllowed=x64compatible
 PrivilegesRequired=admin
 CloseApplications=force
 
@@ -39,6 +39,9 @@ Name: "startmenu"; Description: "Create a Start Menu shortcut"; GroupDescription
 Source: "dist\GKMediaRandomizer\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Icon
 Source: "icon.ico"; DestDir: "{app}"; Flags: ignoreversion
+; License + third-party notices alongside the binary (also bundled inside via spec)
+Source: "assets\license.txt"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
+Source: "assets\THIRD_PARTY_NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon

@@ -4,7 +4,7 @@ GKMediaRandomizer - Windows app to randomly view images and videos
 Distributed as Inno Setup installer with auto-update from GitHub releases.
 """
 
-APP_VERSION = "2.1.7"
+APP_VERSION = "2.2.0"
 REPO_OWNER = "georgekgr12"
 REPO_NAME = "GK_MediaRandomizer_Releases"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
@@ -26,14 +26,16 @@ from datetime import datetime
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QVBoxLayout,
     QHBoxLayout, QWidget, QFileDialog, QMessageBox, QProgressDialog,
-    QStackedWidget, QFrame, QShortcut, QGraphicsDropShadowEffect,
+    QStackedWidget, QFrame, QGraphicsDropShadowEffect,
     QDialog, QSizePolicy, QSpacerItem
 )
-from PyQt5.QtGui import QPixmap, QImage, QIcon, QFont, QKeySequence, QColor, QPainter
-from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QPropertyAnimation, QEasingCurve
+from PySide6.QtGui import (
+    QPixmap, QImage, QIcon, QFont, QKeySequence, QColor, QPainter, QShortcut,
+)
+from PySide6.QtCore import Qt, QTimer, QThread, Signal, QSize, QPropertyAnimation, QEasingCurve
 
 # Configure VLC paths before importing vlc module
 import ctypes
@@ -173,9 +175,9 @@ class MediaItem:
 
 
 class MediaScanner(QThread):
-    progress = pyqtSignal(str)
-    finished = pyqtSignal(list)
-    error = pyqtSignal(str)
+    progress = Signal(str)
+    finished = Signal(list)
+    error = Signal(str)
 
     def __init__(self, folder_path: Path):
         super().__init__()
@@ -209,8 +211,8 @@ class MediaScanner(QThread):
 
 
 class UpdateChecker(QThread):
-    result = pyqtSignal(dict)
-    error = pyqtSignal(str)
+    result = Signal(dict)
+    error = Signal(str)
 
     def __init__(self, is_auto: bool = False, cache_dir: Optional[Path] = None):
         super().__init__()
@@ -310,9 +312,9 @@ class UpdateChecker(QThread):
 
 
 class UpdateDownloader(QThread):
-    progress = pyqtSignal(int)
-    finished = pyqtSignal(str)
-    error = pyqtSignal(str)
+    progress = Signal(int)
+    finished = Signal(str)
+    error = Signal(str)
 
     def __init__(self, url: str, file_name: str, expected_sha256: Optional[str]):
         super().__init__()
@@ -359,53 +361,42 @@ class UpdateDownloader(QThread):
 
 
 # ── About Dialog ─────────────────────────────────────────────
-EULA_TEXT = """\
-GKMediaRandomizer — Freeware License Agreement
+def _load_license_text() -> str:
+    candidates = []
+    if getattr(sys, 'frozen', False):
+        candidates.append(Path(sys._MEIPASS) / 'license.txt')
+        candidates.append(Path(sys.executable).parent / 'license.txt')
+        candidates.append(Path(sys.executable).parent / 'LICENSE.txt')
+    candidates.append(Path(__file__).parent / 'assets' / 'license.txt')
+    for p in candidates:
+        try:
+            if p.exists():
+                return p.read_text(encoding='utf-8')
+        except Exception:
+            continue
+    return "License text not available. See LICENSE.txt installed alongside the application."
 
-Copyright (c) 2026 George Karagioules. All rights reserved.
 
-IMPORTANT — READ CAREFULLY: This End-User License Agreement ("EULA") is a \
-legal agreement between you ("User") and George Karagioules ("Author") for \
-the use of GKMediaRandomizer ("Software").
-
-By installing, copying, or otherwise using the Software, you agree to be \
-bound by the terms of this EULA.
-
-1. GRANT OF LICENSE
-The Author grants you a non-exclusive, non-transferable, limited license \
-to install and use the Software free of charge for personal and commercial \
-purposes.
-
-2. RESTRICTIONS
-You may NOT:
-  (a) Modify, adapt, translate, reverse-engineer, decompile, or disassemble;
-  (b) Redistribute, sell, rent, lease, sublicense, or transfer the Software;
-  (c) Remove or alter any proprietary notices, labels, or marks;
-  (d) Use the Software for any unlawful purpose.
-
-3. INTELLECTUAL PROPERTY
-The Software is protected by copyright laws. The Author retains all \
-intellectual property rights.
-
-4. DISCLAIMER OF WARRANTIES
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS \
-OR IMPLIED.
-
-5. LIMITATION OF LIABILITY
-IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER \
-LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
-
-6. TERMINATION
-This EULA terminates automatically if you fail to comply with any term. \
-Upon termination, you must destroy all copies of the Software.
-"""
+def _load_third_party_notices() -> str:
+    candidates = []
+    if getattr(sys, 'frozen', False):
+        candidates.append(Path(sys._MEIPASS) / 'THIRD_PARTY_NOTICES.txt')
+        candidates.append(Path(sys.executable).parent / 'THIRD_PARTY_NOTICES.txt')
+    candidates.append(Path(__file__).parent / 'assets' / 'THIRD_PARTY_NOTICES.txt')
+    for p in candidates:
+        try:
+            if p.exists():
+                return p.read_text(encoding='utf-8')
+        except Exception:
+            continue
+    return "Third-party notices not available."
 
 
 class AboutDialog(QDialog):
     def __init__(self, parent=None, icon_path: Optional[str] = None):
         super().__init__(parent)
-        self.setWindowTitle("About GK Media Randomizer")
-        self.setFixedSize(480, 520)
+        self.setWindowTitle("About GKMediaRandomizer")
+        self.setFixedSize(520, 600)
         self.setStyleSheet(f"""
             QDialog {{
                 background-color: {BG_SURFACE};
@@ -426,7 +417,7 @@ class AboutDialog(QDialog):
                 layout.addWidget(icon_label)
 
         # App name
-        title = QLabel("GK Media Randomizer")
+        title = QLabel("GKMediaRandomizer")
         title.setFont(QFont("Segoe UI", 18, QFont.Bold))
         title.setStyleSheet(f"color: {TEXT_PRIMARY};")
         title.setAlignment(Qt.AlignCenter)
@@ -440,23 +431,56 @@ class AboutDialog(QDialog):
 
         layout.addSpacing(8)
 
-        # EULA in a scroll area
-        from PyQt5.QtWidgets import QTextEdit
-        eula = QTextEdit()
-        eula.setReadOnly(True)
-        eula.setPlainText(EULA_TEXT)
-        eula.setStyleSheet(f"""
+        # Tabbed view: License + Third-Party Notices
+        from PySide6.QtWidgets import QTextEdit, QTabWidget
+        tabs = QTabWidget()
+        tabs.setStyleSheet(f"""
+            QTabWidget::pane {{
+                background-color: {BG_DARK};
+                border: 1px solid {BORDER};
+                border-radius: 6px;
+            }}
+            QTabBar::tab {{
+                background-color: {BG_ELEVATED};
+                color: {TEXT_SECONDARY};
+                padding: 6px 14px;
+                border: 1px solid {BORDER};
+                border-bottom: none;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                margin-right: 2px;
+                font-size: 11px;
+            }}
+            QTabBar::tab:selected {{
+                background-color: {BG_DARK};
+                color: {TEXT_PRIMARY};
+            }}
+        """)
+
+        text_style = f"""
             QTextEdit {{
                 background-color: {BG_DARK};
                 color: {TEXT_SECONDARY};
-                border: 1px solid {BORDER};
-                border-radius: 6px;
+                border: none;
                 padding: 10px;
                 font-size: 11px;
                 font-family: "Segoe UI", sans-serif;
             }}
-        """)
-        layout.addWidget(eula, 1)
+        """
+
+        eula = QTextEdit()
+        eula.setReadOnly(True)
+        eula.setPlainText(_load_license_text())
+        eula.setStyleSheet(text_style)
+        tabs.addTab(eula, "License")
+
+        notices = QTextEdit()
+        notices.setReadOnly(True)
+        notices.setPlainText(_load_third_party_notices())
+        notices.setStyleSheet(text_style)
+        tabs.addTab(notices, "Third-Party Notices")
+
+        layout.addWidget(tabs, 1)
 
         layout.addSpacing(8)
 
@@ -513,7 +537,7 @@ class GKMediaRandomizerApp(QMainWindow):
 
     # ── UI Construction ──────────────────────────────────────
     def _build_ui(self):
-        self.setWindowTitle("GK Media Randomizer")
+        self.setWindowTitle("GKMediaRandomizer")
         self.setMinimumSize(900, 650)
         self.resize(1100, 780)
         self.setStyleSheet(APP_STYLESHEET)
@@ -657,7 +681,7 @@ class GKMediaRandomizerApp(QMainWindow):
         # Title
         painter.setPen(QColor(TEXT_PRIMARY))
         painter.setFont(QFont("Segoe UI", 26, QFont.Bold))
-        painter.drawText(welcome.rect().adjusted(0, -40, 0, 0), Qt.AlignCenter, "GK Media Randomizer")
+        painter.drawText(welcome.rect().adjusted(0, -40, 0, 0), Qt.AlignCenter, "GKMediaRandomizer")
 
         # Subtitle
         painter.setPen(QColor(TEXT_SECONDARY))
@@ -676,7 +700,7 @@ class GKMediaRandomizerApp(QMainWindow):
     # ── About Dialog ─────────────────────────────────────────
     def _show_about(self):
         dlg = AboutDialog(self, icon_path=self._get_icon_path())
-        dlg.exec_()
+        dlg.exec()
 
     # ── Folder & Scanning ────────────────────────────────────
     def select_folder(self):
@@ -1089,7 +1113,7 @@ def main():
             app.setWindowIcon(QIcon(str(exe_icon)))
 
     window = GKMediaRandomizerApp()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':
