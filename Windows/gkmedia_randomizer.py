@@ -4,7 +4,7 @@ GKMediaRandomizer - Windows app to randomly view images and videos
 Distributed as Inno Setup installer with auto-update from GitHub releases.
 """
 
-APP_VERSION = "2.2.2"
+APP_VERSION = "2.2.3"
 REPO_OWNER = "georgekgr12"
 REPO_NAME = "GK_MediaRandomizer_Releases"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
@@ -522,6 +522,7 @@ class GKMediaRandomizerApp(QMainWindow):
         self._update_checker: Optional[UpdateChecker] = None
         self._update_downloader: Optional[UpdateDownloader] = None
         self._update_is_auto = False
+        self._update_dialog_open = False
         self._vlc_media: Optional[object] = None   # keeps VLC media object alive
         self.config_file = Path.home() / ".gkmedia_randomizer_config.json"
         self._app_data_dir = Path(os.environ.get("APPDATA", Path.home())) / "GKMediaRandomizer"
@@ -918,12 +919,28 @@ class GKMediaRandomizerApp(QMainWindow):
             pass
 
     def _check_for_updates(self, is_auto: bool = False):
+        # Don't stack: skip if a checker is in flight, a dialog is up, or a
+        # download/install is in progress.
         if self._update_checker and self._update_checker.isRunning():
             return
+        if self._update_dialog_open:
+            return
+        if self._update_downloader and self._update_downloader.isRunning():
+            return
+        # Disconnect the previous checker's signals so a queued stale result
+        # can't fire a second dialog while a fresh check is in flight.
+        if self._update_checker is not None:
+            try:
+                self._update_checker.result.disconnect(self._on_update_check_result)
+                self._update_checker.error.disconnect(self._on_update_check_error)
+            except (RuntimeError, TypeError):
+                pass
         self._update_is_auto = is_auto
+        # Disable the button immediately so a click can't enqueue a parallel
+        # manual check while the auto-check's signal is in transit.
+        self.btn_update.setEnabled(False)
         if not is_auto:
             self.btn_update.setText("Checking...")
-            self.btn_update.setEnabled(False)
         self._update_checker = UpdateChecker(is_auto=is_auto, cache_dir=self._app_data_dir)
         self._update_checker.result.connect(self._on_update_check_result)
         self._update_checker.error.connect(self._on_update_check_error)
@@ -932,6 +949,11 @@ class GKMediaRandomizerApp(QMainWindow):
     def _on_update_check_result(self, info: dict):
         self.btn_update.setText("Check for Updates")
         self.btn_update.setEnabled(True)
+
+        # If a dialog is already up (from a prior result that's still being
+        # responded to in a nested event loop), ignore this stale signal.
+        if self._update_dialog_open:
+            return
 
         if not info:
             if not self._update_is_auto:
@@ -944,13 +966,18 @@ class GKMediaRandomizerApp(QMainWindow):
         if is_auto and self._is_dismissed(tag):
             return
 
-        reply = QMessageBox.question(
-            self, "Update Available",
-            f"A new version is available: {tag}\n\n"
-            f"{info.get('release_notes', '')}\n\n"
-            f"Download and install now?",
-            QMessageBox.Yes | QMessageBox.No,
-        )
+        self._update_dialog_open = True
+        try:
+            reply = QMessageBox.question(
+                self, "Update Available",
+                f"A new version is available: {tag}\n\n"
+                f"{info.get('release_notes', '')}\n\n"
+                f"Download and install now?",
+                QMessageBox.Yes | QMessageBox.No,
+            )
+        finally:
+            self._update_dialog_open = False
+
         if reply == QMessageBox.Yes:
             self._download_update(info)
         elif is_auto:
