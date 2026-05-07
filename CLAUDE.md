@@ -17,14 +17,14 @@ Cross-platform media viewer (images & videos) that randomizes playback order fro
 - `Windows/installer.iss` — Inno Setup installer script
 - `Windows/build.bat` — Build script (PyInstaller → Inno Setup)
 - `Windows/assets/license.txt` — Freeware EULA shown during installation (also bundled into the install folder as `LICENSE.txt` and inside the PyInstaller archive for runtime display in About dialog)
-- `Windows/assets/THIRD_PARTY_NOTICES.txt` — Open-source attribution for bundled libraries (PySide6, Qt, libVLC, python-vlc, Pillow, send2trash, Python runtime)
+- `Windows/assets/THIRD_PARTY_NOTICES.txt` — Open-source attribution for bundled libraries (PySide6, Qt, libVLC, python-vlc, send2trash, OpenSSL, libffi, Python runtime, MS VC Runtime)
 - `LICENSE` (repo root) — Mirror of the freeware EULA for GitHub auto-detection
 - `Windows/icon.ico` — Application icon
 
 ## Build & Run
 ```bash
 cd Windows
-pip install PySide6 python-vlc Pillow send2trash
+pip install PySide6 python-vlc send2trash
 python gkmedia_randomizer.py          # Dev mode
 
 build.bat                            # Build installer .exe

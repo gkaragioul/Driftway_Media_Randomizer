@@ -10,15 +10,16 @@ George Karagioules; the components below retain their own licenses.
 Last updated: 2026-05-07.
 
 ----------------------------------------------------------------------------
-1. PySide6 (Qt for Python)
+1. PySide6 (Qt for Python) and shiboken6
    License: GNU Lesser General Public License v3.0 (LGPL-3.0)
    Copyright (c) The Qt Company Ltd. and other contributors.
    Project:   https://wiki.qt.io/Qt_for_Python
    License:   https://www.gnu.org/licenses/lgpl-3.0.html
 
    PySide6 is the official set of Python bindings for Qt, distributed by
-   The Qt Company under the LGPL-3.0. The corresponding source code is
-   available at https://code.qt.io/cgit/pyside/pyside-setup.git/.
+   The Qt Company under the LGPL-3.0. shiboken6 is the binding generator
+   shipped alongside PySide6 under the same license. The corresponding
+   source code is available at https://code.qt.io/cgit/pyside/pyside-setup.git/.
 
 ----------------------------------------------------------------------------
 2. Qt (Qt Framework, dynamically loaded by PySide6)
@@ -34,17 +35,19 @@ Last updated: 2026-05-07.
    source code is available at https://code.qt.io/cgit/qt/qt5.git/.
 
 ----------------------------------------------------------------------------
-3. libVLC (VLC media library)
+3. libVLC (VLC media library) and bundled VLC plugins
    License: GNU Lesser General Public License v2.1 or later (LGPL-2.1+)
    Copyright (c) VideoLAN and the libVLC authors.
    Project:   https://www.videolan.org/vlc/libvlc.html
    License:   https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
 
-   libVLC (libvlc.dll, libvlccore.dll, and the bundled VLC plugins) is
-   distributed by VideoLAN under the LGPL-2.1+. The corresponding source
-   code is available at https://code.videolan.org/videolan/vlc/. The
-   libraries are shipped as replaceable shared libraries in accordance
-   with LGPL-2.1+ Section 6.
+   libVLC (libvlc.dll, libvlccore.dll, and the bundled VLC plugins under
+   plugins/access, plugins/audio_mixer, plugins/audio_output, plugins/codec,
+   plugins/d3d11, plugins/d3d9, plugins/demux, plugins/packetizer,
+   plugins/video_chroma, plugins/video_output) is distributed by VideoLAN
+   under the LGPL-2.1+. The corresponding source code is available at
+   https://code.videolan.org/videolan/vlc/. The libraries are shipped as
+   replaceable shared libraries in accordance with LGPL-2.1+ Section 6.
 
 ----------------------------------------------------------------------------
 4. python-vlc
@@ -57,37 +60,7 @@ Last updated: 2026-05-07.
    corresponding source code is available at the project URL above.
 
 ----------------------------------------------------------------------------
-5. Pillow (PIL Fork)
-   License: Historical Permission Notice and Disclaimer (HPND, also known
-            as the MIT-CMU License)
-   Copyright (c) 1997-2011 by Secret Labs AB.
-   Copyright (c) 1995-2011 by Fredrik Lundh and contributors.
-   Pillow is the friendly PIL fork by Jeffrey A. Clark and contributors.
-   Project: https://python-pillow.org/
-
-   By obtaining, using, and/or copying this software and/or its associated
-   documentation, you agree that you have read, understood, and will
-   comply with the following terms and conditions:
-
-   Permission to use, copy, modify and distribute this software and its
-   documentation for any purpose and without fee is hereby granted,
-   provided that the above copyright notice appears in all copies, and
-   that both that copyright notice and this permission notice appear in
-   supporting documentation, and that the name of Secret Labs AB or the
-   author not be used in advertising or publicity pertaining to
-   distribution of the software without specific, written prior
-   permission.
-
-   SECRET LABS AB AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO
-   THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-   FITNESS. IN NO EVENT SHALL SECRET LABS AB OR THE AUTHOR BE LIABLE FOR
-   ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-   WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
-   OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
-----------------------------------------------------------------------------
-6. send2trash
+5. send2trash
    License: BSD 3-Clause License
    Copyright (c) 2017, Virgil Dupras.
    Project: https://github.com/arsenetar/send2trash
@@ -119,19 +92,65 @@ Last updated: 2026-05-07.
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------------
-7. Python (CPython runtime)
+6. Python (CPython runtime)
    License: Python Software Foundation License Version 2 (PSF-2.0)
    Copyright (c) 2001-2026 Python Software Foundation. All rights reserved.
    Project: https://www.python.org/
    License: https://docs.python.org/3/license.html
 
-   The CPython runtime, standard library, and ancillary files (api-ms-win-*
-   universal CRT shims) are distributed with the Software in accordance
-   with the PSF License Agreement. The corresponding source code is
-   available at https://www.python.org/downloads/source/.
+   The CPython runtime, standard library, ancillary .pyd modules (_bz2,
+   _ctypes, _decimal, _hashlib, _lzma, _socket, _ssl, select, unicodedata),
+   the python3 / python311 DLLs, and the api-ms-win-* universal CRT shims
+   are distributed with the Software in accordance with the PSF License
+   Agreement. The corresponding source code is available at
+   https://www.python.org/downloads/source/.
 
 ----------------------------------------------------------------------------
-8. Microsoft Visual C++ Runtime (VCRUNTIME140.dll, VCRUNTIME140_1.dll)
+7. OpenSSL (libssl-3.dll, libcrypto-3.dll)
+   License: Apache License 2.0
+   Copyright (c) 1998-2026 The OpenSSL Project Authors. All Rights Reserved.
+   Project: https://www.openssl.org/
+   License: https://www.apache.org/licenses/LICENSE-2.0
+
+   This product includes software developed by the OpenSSL Project for
+   use in the OpenSSL Toolkit. OpenSSL 3.0+ is licensed under the
+   Apache License 2.0. libssl-3.dll and libcrypto-3.dll are bundled
+   with the Software as part of the Python runtime distribution and
+   provide TLS / cryptographic primitives used by Python's _ssl and
+   _hashlib modules. The corresponding source code is available at
+   https://www.openssl.org/source/.
+
+----------------------------------------------------------------------------
+8. libffi (libffi-8.dll)
+   License: MIT-style license (libffi license)
+   Copyright (c) 1996-2024 Anthony Green, Red Hat, Inc and others.
+   Project: https://sourceware.org/libffi/
+
+   Permission is hereby granted, free of charge, to any person obtaining
+   a copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to
+   permit persons to whom the Software is furnished to do so, subject to
+   the following conditions:
+
+   The above copyright notice and this permission notice shall be
+   included in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+   libffi-8.dll is bundled with the Software as part of the Python runtime
+   distribution and supports Python's ctypes module.
+
+----------------------------------------------------------------------------
+9. Microsoft Visual C++ Runtime (VCRUNTIME140.dll, VCRUNTIME140_1.dll,
+   ucrtbase.dll, MSVCP140.dll)
    License: Microsoft Software License Terms - Visual C++ Redistributable
    Copyright (c) Microsoft Corporation. All rights reserved.
 
