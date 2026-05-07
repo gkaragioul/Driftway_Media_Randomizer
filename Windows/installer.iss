@@ -2,7 +2,7 @@
 ; Builds from PyInstaller one-dir output in Windows\dist\GKMediaRandomizer\
 
 #define MyAppName "GKMediaRandomizer"
-#define MyAppVersion "2.2.3"
+#define MyAppVersion "2.2.4"
 #define MyAppPublisher "George Karagioules"
 #define MyAppExeName "GKMediaRandomizer.exe"
 #define MyAppId "{{B8F2D3A1-7C4E-4F5A-9B6D-2E8F1A3C5D7E}"
