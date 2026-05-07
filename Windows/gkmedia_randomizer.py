@@ -4,7 +4,7 @@ GKMediaRandomizer - Windows app to randomly view images and videos
 Distributed as Inno Setup installer with auto-update from GitHub releases.
 """
 
-APP_VERSION = "2.2.1"
+APP_VERSION = "2.2.2"
 REPO_OWNER = "georgekgr12"
 REPO_NAME = "GK_MediaRandomizer_Releases"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
@@ -35,7 +35,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import (
     QPixmap, QImage, QIcon, QFont, QKeySequence, QColor, QPainter, QShortcut,
 )
-from PySide6.QtCore import Qt, QTimer, QThread, Signal, QSize, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import (
+    Qt, QTimer, QThread, Signal, QSize, QPropertyAnimation, QEasingCurve, QLockFile,
+)
 
 # Configure VLC paths before importing vlc module
 import ctypes
@@ -997,16 +999,56 @@ class GKMediaRandomizerApp(QMainWindow):
         tmp = tempfile.gettempdir()
         ts = int(datetime.now().timestamp())
 
+        log_path = os.path.join(tmp, f"gkmr_update_{ts}.log")
         ps1_path = os.path.join(tmp, f"gkmr_relaunch_{ts}.ps1")
-        ps1_lines = [
-            "Start-Sleep -Seconds 3",
-            f"$proc = Start-Process -FilePath '{installer_path}' -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Verb RunAs -Wait -PassThru",
-            "Start-Sleep -Seconds 2",
-            f"if (Test-Path '{app_exe}') {{ Start-Process '{app_exe}' }}",
-            f"Remove-Item '{ps1_path}' -Force -ErrorAction SilentlyContinue",
-        ]
+
+        # PowerShell helper. Writes a timestamped log so failures are diagnosable.
+        # Uses -PassThru + WaitForExit() (more reliable than -Wait with -Verb RunAs)
+        # and polls Test-Path + a non-locked file check for up to 30s before launch.
+        ps1_script = f"""$ErrorActionPreference = 'Continue'
+function Log {{ param($m) "$([DateTime]::Now.ToString('HH:mm:ss.fff')) $m" | Out-File -FilePath '{log_path}' -Append -Encoding utf8 }}
+
+Log "Helper starting (pid $PID)"
+Start-Sleep -Seconds 3
+
+try {{
+    Log "Launching installer (elevated): {installer_path}"
+    $proc = Start-Process -FilePath '{installer_path}' -ArgumentList '/SILENT','/SUPPRESSMSGBOXES','/NORESTART' -Verb RunAs -PassThru -ErrorAction Stop
+    $proc.WaitForExit()
+    Log "Installer exited with code $($proc.ExitCode)"
+}} catch {{
+    Log "Installer launch failed: $_"
+    Remove-Item '{ps1_path}' -Force -ErrorAction SilentlyContinue
+    exit 1
+}}
+
+# Wait up to 30s for the new app exe to exist AND not be file-locked by Inno Setup.
+$found = $false
+for ($i = 0; $i -lt 60; $i++) {{
+    if (Test-Path '{app_exe}') {{
+        try {{
+            $f = [IO.File]::Open('{app_exe}', 'Open', 'Read', 'ReadWrite')
+            $f.Close()
+            $found = $true
+            Log "App exe ready after $($i * 500)ms"
+            break
+        }} catch {{ }}
+    }}
+    Start-Sleep -Milliseconds 500
+}}
+
+if ($found) {{
+    Log "Relaunching: {app_exe}"
+    Start-Process '{app_exe}'
+    Log "Relaunch issued"
+}} else {{
+    Log "App exe never became available; skipping relaunch"
+}}
+
+Remove-Item '{ps1_path}' -Force -ErrorAction SilentlyContinue
+"""
         with open(ps1_path, "w", encoding="utf-8") as f:
-            f.write("\r\n".join(ps1_lines))
+            f.write(ps1_script)
 
         vbs_path = os.path.join(tmp, f"gkmr_launcher_{ts}.vbs")
         vbs_lines = [
@@ -1103,6 +1145,16 @@ def main():
         pass
 
     app = QApplication(sys.argv)
+
+    # Single-instance guard: if the auto-update helper fires its relaunch
+    # late while the user has already manually opened the app, the second
+    # instance exits silently instead of stacking another window.
+    _lock_dir = Path(os.environ.get("APPDATA", Path.home())) / "GKMediaRandomizer"
+    _lock_dir.mkdir(parents=True, exist_ok=True)
+    _lock = QLockFile(str(_lock_dir / "app.lock"))
+    _lock.setStaleLockTime(5000)
+    if not _lock.tryLock(0):
+        return
 
     icon_path = Path(__file__).parent / "icon.ico"
     if icon_path.exists():
