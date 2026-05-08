@@ -1,40 +1,49 @@
-
-
 https://github.com/user-attachments/assets/c58bc261-bf07-49f2-8623-7cc61c7228aa
 
-<h1 align="center">GKMediaRandomizer</h1>
+<div align="center">
 
-<p align="center">
-  <strong>Cross-platform media viewer that randomizes playback from a selected folder.</strong><br>
-  Browse images and videos in a shuffled, keyboard-friendly viewer.
+<h1>Driftway Media Randomizer</h1>
+
+<hr>
+
+<p>
+  <strong>Free randomized media playback for Windows and macOS. Shuffle images and videos from any folder.</strong><br>
+  <em>Recursive scanning, VLC-powered video playback, keyboard navigation, Recycle Bin deletes, and GitHub Releases updates from this repository.</em>
 </p>
 
-<p align="center">
-  <a href="#features">Features</a> -
-  <a href="#usage">Usage</a> -
-  <a href="#keyboard-controls">Controls</a> -
-  <a href="#build-from-source">Build</a> -
+<p>
+  <a href="https://github.com/karagioules/Driftway_Media_Randomizer/releases/latest">Download</a> &bull;
+  <a href="#features">Features</a> &bull;
+  <a href="#requirements">Requirements</a> &bull;
+  <a href="#building">Building</a> &bull;
   <a href="#license">License</a>
 </p>
 
-![Windows](https://img.shields.io/badge/Windows-10+-0078D6.svg)
-![macOS](https://img.shields.io/badge/macOS-SwiftUI-000000.svg)
-![License](https://img.shields.io/badge/License-Freeware-red.svg)
+<hr>
 
-## Overview
-
-GKMediaRandomizer is a media viewer for rediscovering images and videos from a selected folder. It scans media recursively, shuffles playback order, supports fast keyboard navigation, and keeps deletion recoverable by moving files to the Recycle Bin.
+</div>
 
 ## Features
 
-- **Randomized media playback**: Shuffle images and videos with double-pass OS-entropy seeding
-- **Wide format support**: JPG, PNG, GIF, WebP, BMP, TIFF, MP4, AVI, MKV, MOV, WMV, FLV, WebM, M4V, 3GP, and more
-- **Recursive folder scanning**: Discovers media files inside subfolders
-- **Video playback with auto-looping**: Powered by VLC for reliable playback
-- **Keyboard-driven navigation**: Arrow keys, spacebar, and delete key for fast browsing
-- **Instant delete to Recycle Bin**: Remove unwanted files while keeping them recoverable
-- **Session memory**: Picks up from the last selected folder
-- **Simple Windows installer**: Inno Setup installer with desktop and Start Menu shortcuts
+### Media Playback
+- **Randomized playback**: Shuffles images and videos with double-pass OS-entropy seeding.
+- **Recursive scanning**: Finds supported media inside the selected folder and its subfolders.
+- **Wide format support**: JPG, PNG, GIF, WebP, BMP, TIFF, MP4, AVI, MKV, MOV, WMV, FLV, WebM, M4V, 3GP, and more.
+- **Aspect-fit images**: Displays photos and artwork cleanly without cropping.
+- **Looping video playback**: Uses VLC on Windows for reliable local video playback.
+
+### Workflow
+- **Keyboard navigation**: Use right arrow, left arrow, and spacebar for fast browsing.
+- **Recoverable deletion**: Delete moves the current file to the Recycle Bin.
+- **Session memory**: Remembers the last selected folder between launches.
+- **Simple Windows installer**: Inno Setup installer creates desktop and Start Menu shortcuts.
+
+### Updates
+- Checks this repository's GitHub Releases for new Windows installer builds.
+- Supports ETag caching to reduce GitHub API usage.
+- Verifies installer SHA256 hashes when release notes include `SHA256: <64-char hex>`.
+- Tracks skipped versions so dismissed automatic prompts stay quiet.
+- Detects failed installs on the next launch and warns the user.
 
 ## Platforms
 
@@ -45,7 +54,7 @@ GKMediaRandomizer is a media viewer for rediscovering images and videos from a s
 
 ## Usage
 
-1. Launch GKMediaRandomizer.
+1. Launch Driftway Media Randomizer.
 2. Click **Open Folder** to choose a folder with images and videos.
 3. Use arrow keys or spacebar to navigate.
 4. Press **Delete** to move the current file to the Recycle Bin.
@@ -57,9 +66,16 @@ GKMediaRandomizer is a media viewer for rediscovering images and videos from a s
 | **Right Arrow** | Next media |
 | **Left Arrow** | Previous media |
 | **Space** | Next media |
-| **Delete** | Move current file to Recycle Bin |
+| **Delete** | Move current file to the Recycle Bin |
 
-## Build From Source
+## Requirements
+
+- Windows 10 or 11 64-bit for the packaged Windows app.
+- VLC is bundled in release builds for Windows video playback.
+- macOS support is provided by the SwiftUI source in `Sources/`.
+- About 65 MB of disk space for the Windows build.
+
+## Building
 
 ```bash
 cd Windows
@@ -69,15 +85,11 @@ python gkmedia_randomizer.py
 build.bat
 ```
 
-## System Requirements
-
-- **OS**: Windows 10 / 11 64-bit
-- **Memory**: 512 MB RAM
-- **Disk**: About 65 MB
+The Windows release build creates the installer under `Windows/dist-installer/`. Publish the generated `.exe` in this repository's Releases tab and include its SHA256 hash in the release notes.
 
 ## License
 
-GKMediaRandomizer is proprietary freeware. It is free to use for personal and commercial use, but modification, redistribution, resale, and sublicensing require prior written permission from George Karagioules.
+Driftway Media Randomizer is proprietary freeware. It is free to use for personal and commercial use, but modification, redistribution, resale, and sublicensing require prior written permission from George Karagioules.
 
 See [LICENSE](LICENSE) for the EULA and [Windows/assets/THIRD_PARTY_NOTICES.txt](Windows/assets/THIRD_PARTY_NOTICES.txt) for bundled third-party notices. Bundled third-party components, including PySide6, Qt, libVLC, python-vlc, send2trash, OpenSSL, libffi, and the Python runtime, retain their respective open-source licenses.
 

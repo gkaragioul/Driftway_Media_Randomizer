@@ -6,7 +6,7 @@ Distributed as Inno Setup installer with auto-update from GitHub releases.
 
 APP_VERSION = "2.2.7"
 REPO_OWNER = "karagioules"
-REPO_NAME = "GKMediaRandomizer"
+REPO_NAME = "Driftway_Media_Randomizer"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
 
 import sys
