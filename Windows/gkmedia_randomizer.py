@@ -4,9 +4,9 @@ GKMediaRandomizer - Windows app to randomly view images and videos
 Distributed as Inno Setup installer with auto-update from GitHub releases.
 """
 
-APP_VERSION = "2.2.4"
-REPO_OWNER = "georgekgr12"
-REPO_NAME = "GK_MediaRandomizer_Releases"
+APP_VERSION = "2.2.5"
+REPO_OWNER = "karagioules"
+REPO_NAME = "Driftplay_RandomMedia_Player"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
 
 import sys
