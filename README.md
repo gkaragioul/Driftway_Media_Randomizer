@@ -2,7 +2,8 @@
   <img src="GKMediaRandomizer.png" alt="GKMediaRandomizer logo" width="128">
 </p>
 
-<h1 align="center">GKMediaRandomizer</h1>
+<h1 align="center">Driftplay RandomMedia Player
+</h1>
 
 <p align="center">
   <strong>Cross-platform media viewer that randomizes playback from a selected folder.</strong><br>
