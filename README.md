@@ -1,9 +1,3 @@
-
-
-
-
-https://github.com/user-attachments/assets/28f28327-a377-4bf7-953f-8ca847683b24
-
 <h1 align="center">GKMediaRandomizer</h1>
 
 <p align="center">

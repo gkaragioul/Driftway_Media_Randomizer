@@ -33,9 +33,9 @@ build.bat                            # Build installer .exe
 
 ## Version & Updates
 - Version is set in `Windows/gkmedia_randomizer.py` → `APP_VERSION` constant
-- Update system checks GitHub releases at `karagioules/GKMediaRandomizer_Releases`
+- Update system checks GitHub releases at `karagioules/GKMediaRandomizer`
 - Update flow:
-  1. Check `api.github.com/repos/karagioules/GKMediaRandomizer_Releases/releases/latest`
+  1. Check `api.github.com/repos/karagioules/GKMediaRandomizer/releases/latest`
   2. Compare tag version with current app version
   3. Prompt user with release notes
   4. Download installer to temp (with SHA256 verification if hash in release notes)
@@ -47,7 +47,7 @@ build.bat                            # Build installer .exe
 - Version displayed in bottom control bar
 
 ## GitHub
-- Releases repo: `https://github.com/karagioules/GKMediaRandomizer_Releases` (public, for auto-updates)
+- Repo: `https://github.com/karagioules/GKMediaRandomizer`
 - Releases should contain the Inno Setup `.exe` installer with SHA256 hash in release notes body
 - SHA256 format in release notes: `SHA256: <64-char hex>`
 
