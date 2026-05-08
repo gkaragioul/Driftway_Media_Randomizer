@@ -1,20 +1,20 @@
 @echo off
-REM Build script for GKMediaRandomizer installer
+REM Build script for Driftway Media Randomizer installer
 REM Step 1: PyInstaller one-dir build
 REM Step 2: Inno Setup compiler
 
 echo ============================================
-echo  GKMediaRandomizer — Build Installer
+echo  Driftway Media Randomizer - Build Installer
 echo ============================================
 echo.
 
 REM Remove old build artifacts
 if exist "build\" rmdir /s /q build
-if exist "dist\GKMediaRandomizer\" rmdir /s /q "dist\GKMediaRandomizer"
+if exist "dist\DriftwayMediaRandomizer\" rmdir /s /q "dist\DriftwayMediaRandomizer"
 if exist "dist-installer\" rmdir /s /q dist-installer
 
 echo [1/2] Running PyInstaller (one-dir)...
-pyinstaller GKMediaRandomizer.spec --clean --noconfirm
+pyinstaller DriftwayMediaRandomizer.spec --clean --noconfirm
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
@@ -37,7 +37,7 @@ if not defined ISCC if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe" set "ISCC=%P
 if not defined ISCC (
     echo [WARN] Inno Setup compiler ^(ISCC.exe^) not found.
     echo        Install Inno Setup 6 from https://jrsoftware.org/issetup.php
-    echo        The PyInstaller output is in dist\GKMediaRandomizer\
+    echo        The PyInstaller output is in dist\DriftwayMediaRandomizer\
     pause
     exit /b 1
 )
@@ -55,13 +55,13 @@ if %ERRORLEVEL% NEQ 0 (
 echo.
 echo ============================================
 echo  Build successful!
-echo  Installer: dist-installer\GKMediaRandomizer_Setup.exe
+echo  Installer: dist-installer\Driftway_Media_Randomizer_Setup.exe
 echo ============================================
 echo.
 
 REM Generate SHA256 for release notes
 echo SHA256 hash for release notes:
-certutil -hashfile "dist-installer\GKMediaRandomizer_Setup.exe" SHA256 | findstr /V "hash"
+certutil -hashfile "dist-installer\Driftway_Media_Randomizer_Setup.exe" SHA256 | findstr /V "hash"
 echo.
 
 pause

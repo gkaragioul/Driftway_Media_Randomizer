@@ -1,25 +1,25 @@
-# GKMediaRandomizer
+# Driftway Media Randomizer
 
 ## Project Overview
-Cross-platform media viewer (images & videos) that randomizes playback order from a selected folder. Product name: **GKMediaRandomizer**. Windows desktop app uses Python + PySide6 and is distributed via Inno Setup installer with auto-updates.
+Cross-platform media viewer (images & videos) that randomizes playback order from a selected folder. Product name: **Driftway Media Randomizer**. Windows desktop app uses Python + PySide6 and is distributed via Inno Setup installer with auto-updates.
 
 ## Architecture
-- **macOS**: Swift/SwiftUI native app (in `Sources/GKMediaRandomizer/`)
+- **macOS**: Swift/SwiftUI native app (in `Sources/DriftwayMediaRandomizer/`)
 - **Windows**: Python 3 + PySide6 + VLC (in `Windows/`)
-  - `gkmedia_randomizer.py` — Main application: UI, media playback, randomization, auto-update system
+  - `gkmedia_randomizer.py` - Main application: UI, media playback, randomization, auto-update system
   - VLC bundled via PyInstaller for video playback
-- **Build**: PyInstaller (one-dir) → Inno Setup installer `.exe`
+- **Build**: PyInstaller (one-dir) -> Inno Setup installer `.exe`
 - **Installer**: Inno Setup with EULA, installs to Program Files, creates desktop/start menu shortcuts
 
 ## Key Files
-- `Windows/gkmedia_randomizer.py` — Main app source (UI, media, randomization, update system)
-- `Windows/GKMediaRandomizer.spec` — PyInstaller configuration (one-dir mode with VLC plugins)
-- `Windows/installer.iss` — Inno Setup installer script
-- `Windows/build.bat` — Build script (PyInstaller → Inno Setup)
-- `Windows/assets/license.txt` — Freeware EULA shown during installation (also bundled into the install folder as `LICENSE.txt` and inside the PyInstaller archive for runtime display in About dialog)
-- `Windows/assets/THIRD_PARTY_NOTICES.txt` — Open-source attribution for bundled libraries (PySide6, Qt, libVLC, python-vlc, send2trash, OpenSSL, libffi, Python runtime, MS VC Runtime)
-- `LICENSE` (repo root) — Mirror of the freeware EULA for GitHub auto-detection
-- `Windows/icon.ico` — Application icon
+- `Windows/gkmedia_randomizer.py` - Main app source (UI, media, randomization, update system)
+- `Windows/DriftwayMediaRandomizer.spec` - PyInstaller configuration (one-dir mode with VLC plugins)
+- `Windows/installer.iss` - Inno Setup installer script
+- `Windows/build.bat` - Build script (PyInstaller -> Inno Setup)
+- `Windows/assets/license.txt` - Freeware EULA shown during installation (also bundled into the install folder as `LICENSE.txt` and inside the PyInstaller archive for runtime display in About dialog)
+- `Windows/assets/THIRD_PARTY_NOTICES.txt` - Open-source attribution for bundled libraries (PySide6, Qt, libVLC, python-vlc, send2trash, OpenSSL, libffi, Python runtime, MS VC Runtime)
+- `LICENSE` (repo root) - Mirror of the freeware EULA for GitHub auto-detection
+- `Windows/icon.ico` - Application icon
 
 ## Build & Run
 ```bash
@@ -28,34 +28,34 @@ pip install PySide6 python-vlc send2trash
 python gkmedia_randomizer.py          # Dev mode
 
 build.bat                            # Build installer .exe
-# Output: Windows/dist-installer/GKMediaRandomizer_Setup.exe
+# Output: Windows/dist-installer/Driftway_Media_Randomizer_Setup.exe
 ```
 
 ## Version & Updates
-- Version is set in `Windows/gkmedia_randomizer.py` → `APP_VERSION` constant
-- Update system checks GitHub releases at `karagioules/GKMediaRandomizer`
+- Version is set in `Windows/gkmedia_randomizer.py` -> `APP_VERSION` constant
+- Update system checks GitHub releases at `karagioules/Driftway_Media_Randomizer`
 - Update flow:
-  1. Check `api.github.com/repos/karagioules/GKMediaRandomizer/releases/latest`
+  1. Check `api.github.com/repos/karagioules/Driftway_Media_Randomizer/releases/latest`
   2. Compare tag version with current app version
   3. Prompt user with release notes
   4. Download installer to temp (with SHA256 verification if hash in release notes)
-  5. Create PowerShell helper script that: waits → runs installer silently (`/VERYSILENT`) → relaunches app
+  5. Create PowerShell helper script that: waits -> runs installer silently (`/VERYSILENT`) -> relaunches app
   6. Quit current app, let helper script handle the rest
 - Failed update detection: writes pending marker before install, checks on next launch
 - Dismissed version tracking: user can skip a version, won't be prompted again (auto-check)
-- ETag caching: sends `If-None-Match` header with cached ETag; 304 responses don't count against GitHub rate limit. Cache stored at `%APPDATA%\GKMediaRandomizer\etag_cache.json`
+- ETag caching: sends `If-None-Match` header with cached ETag; 304 responses don't count against GitHub rate limit. Cache stored at `%APPDATA%\DriftwayMediaRandomizer\etag_cache.json`
 - Version displayed in bottom control bar
 
 ## GitHub
-- Repo: `https://github.com/karagioules/GKMediaRandomizer`
+- Repo: `https://github.com/karagioules/Driftway_Media_Randomizer`
 - Releases should contain the Inno Setup `.exe` installer with SHA256 hash in release notes body
 - SHA256 format in release notes: `SHA256: <64-char hex>`
 
 ## App Branding
-- App name: `GKMediaRandomizer`
+- App name: `Driftway Media Randomizer`
 - App ID (Inno Setup): `{B8F2D3A1-7C4E-4F5A-9B6D-2E8F1A3C5D7E}`
-- Desktop shortcut name: `GKMediaRandomizer`
-- Config location: `%APPDATA%\GKMediaRandomizer\`
+- Desktop shortcut name: `Driftway Media Randomizer`
+- Config location: `%APPDATA%\DriftwayMediaRandomizer\`
 
 ## Features
 - Recursive folder scanning for images and videos
@@ -69,7 +69,6 @@ build.bat                            # Build installer .exe
 - Crash logging to Desktop
 - Inno Setup installer with EULA, Program Files install, desktop shortcut
 
-## Legacy Files (not part of Windows app)
-- `Sources/GKMediaRandomizer/` — macOS SwiftUI version
-- `Package.swift` — Swift Package Manager manifest
-- `AppIcon.iconset/` — macOS icon assets
+## Legacy Files
+- `Package.swift` - Swift Package Manager manifest for the macOS SwiftUI version
+- `AppIcon.iconset/` - macOS icon assets

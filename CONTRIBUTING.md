@@ -1,6 +1,6 @@
 # Contributing
 
-GKMediaRandomizer is proprietary freeware. Public issue reports, reproducible bug reports, and compatibility notes are welcome, but code redistribution, forks for redistribution, and commercial resale require prior written permission from George Karagioules.
+Driftway Media Randomizer is proprietary freeware. Public issue reports, reproducible bug reports, and compatibility notes are welcome, but code redistribution, forks for redistribution, and commercial resale require prior written permission from George Karagioules.
 
 ## Helpful Reports
 

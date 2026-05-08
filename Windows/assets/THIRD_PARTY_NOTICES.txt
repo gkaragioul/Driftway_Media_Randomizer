@@ -1,9 +1,9 @@
-GKMediaRandomizer - Third-Party Notices
-========================================
+Driftway Media Randomizer - Third-Party Notices
+===============================================
 
 This software incorporates components from the projects listed below. The
 original copyright notices and the licenses under which the author received
-such components are set forth here. The restrictions in the GKMediaRandomizer
+such components are set forth here. The restrictions in the Driftway Media Randomizer
 freeware EULA apply only to the original portions of the Software authored by
 George Karagioules; the components below retain their own licenses.
 

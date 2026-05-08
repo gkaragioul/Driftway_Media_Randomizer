@@ -1,10 +1,10 @@
-; GKMediaRandomizer — Inno Setup installer script
-; Builds from PyInstaller one-dir output in Windows\dist\GKMediaRandomizer\
+; Driftway Media Randomizer - Inno Setup installer script
+; Builds from PyInstaller one-dir output in Windows\dist\DriftwayMediaRandomizer\
 
-#define MyAppName "GKMediaRandomizer"
+#define MyAppName "Driftway Media Randomizer"
 #define MyAppVersion "2.2.7"
 #define MyAppPublisher "George Karagioules"
-#define MyAppExeName "GKMediaRandomizer.exe"
+#define MyAppExeName "DriftwayMediaRandomizer.exe"
 #define MyAppId "{{B8F2D3A1-7C4E-4F5A-9B6D-2E8F1A3C5D7E}"
 
 [Setup]
@@ -19,7 +19,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile=assets\license.txt
 OutputDir=dist-installer
-OutputBaseFilename=GKMediaRandomizer_Setup
+OutputBaseFilename=Driftway_Media_Randomizer_Setup
 Compression=lzma2
 SolidCompression=yes
 SetupIconFile=icon.ico
@@ -45,7 +45,7 @@ Name: "startmenu"; Description: "Create a Start Menu shortcut"; GroupDescription
 
 [Files]
 ; PyInstaller one-dir output
-Source: "dist\GKMediaRandomizer\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\DriftwayMediaRandomizer\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Icon
 Source: "icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 ; License + third-party notices alongside the binary (also bundled inside via spec)
@@ -58,4 +58,4 @@ Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch GKMediaRandomizer"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch Driftway Media Randomizer"; Flags: nowait postinstall skipifsilent

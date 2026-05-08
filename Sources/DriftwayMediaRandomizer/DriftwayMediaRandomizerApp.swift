@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct GKMediaRandomizerApp: App {
+struct DriftwayMediaRandomizerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

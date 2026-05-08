@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """
-GKMediaRandomizer - Windows app to randomly view images and videos
+Driftway Media Randomizer - Windows app to randomly view images and videos
 Distributed as Inno Setup installer with auto-update from GitHub releases.
 """
 
+APP_DISPLAY_NAME = "Driftway Media Randomizer"
+APP_INTERNAL_NAME = "DriftwayMediaRandomizer"
 APP_VERSION = "2.2.7"
 REPO_OWNER = "karagioules"
 REPO_NAME = "Driftway_Media_Randomizer"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
+USER_AGENT = f"{APP_INTERNAL_NAME}/{APP_VERSION}"
 
 import sys
 import os
@@ -242,7 +245,7 @@ class UpdateChecker(QThread):
         try:
             cache = self._load_cache()
             headers = {
-                "User-Agent": f"GKMediaRandomizer/{APP_VERSION}",
+                "User-Agent": USER_AGENT,
                 "Accept": "application/vnd.github.v3+json",
             }
             if cache.get("etag"):
@@ -328,7 +331,7 @@ class UpdateDownloader(QThread):
         try:
             temp_dir = tempfile.gettempdir()
             dest = os.path.join(temp_dir, f"gkmr_{int(datetime.now().timestamp())}_{self.file_name}")
-            req = Request(self.url, headers={"User-Agent": f"GKMediaRandomizer/{APP_VERSION}"})
+            req = Request(self.url, headers={"User-Agent": USER_AGENT})
             resp = urlopen(req, timeout=120)
             total = int(resp.headers.get("Content-Length", 0))
             sha = hashlib.sha256()
@@ -397,7 +400,7 @@ def _load_third_party_notices() -> str:
 class AboutDialog(QDialog):
     def __init__(self, parent=None, icon_path: Optional[str] = None):
         super().__init__(parent)
-        self.setWindowTitle("About GKMediaRandomizer")
+        self.setWindowTitle(f"About {APP_DISPLAY_NAME}")
         self.setFixedSize(520, 600)
         self.setStyleSheet(f"""
             QDialog {{
@@ -419,7 +422,7 @@ class AboutDialog(QDialog):
                 layout.addWidget(icon_label)
 
         # App name
-        title = QLabel("GKMediaRandomizer")
+        title = QLabel(APP_DISPLAY_NAME)
         title.setFont(QFont("Segoe UI", 18, QFont.Bold))
         title.setStyleSheet(f"color: {TEXT_PRIMARY};")
         title.setAlignment(Qt.AlignCenter)
@@ -511,7 +514,7 @@ class AboutDialog(QDialog):
 
 
 # ── Main Application ─────────────────────────────────────────
-class GKMediaRandomizerApp(QMainWindow):
+class DriftwayMediaRandomizerApp(QMainWindow):
 
     def __init__(self):
         super().__init__()
@@ -525,7 +528,7 @@ class GKMediaRandomizerApp(QMainWindow):
         self._update_dialog_open = False
         self._vlc_media: Optional[object] = None   # keeps VLC media object alive
         self.config_file = Path.home() / ".gkmedia_randomizer_config.json"
-        self._app_data_dir = Path(os.environ.get("APPDATA", Path.home())) / "GKMediaRandomizer"
+        self._app_data_dir = Path(os.environ.get("APPDATA", Path.home())) / APP_INTERNAL_NAME
         self._app_data_dir.mkdir(parents=True, exist_ok=True)
         self._dismissed_file = self._app_data_dir / "dismissed_update.txt"
         self._pending_file = self._app_data_dir / "pending_update.txt"
@@ -540,7 +543,7 @@ class GKMediaRandomizerApp(QMainWindow):
 
     # ── UI Construction ──────────────────────────────────────
     def _build_ui(self):
-        self.setWindowTitle("GKMediaRandomizer")
+        self.setWindowTitle(APP_DISPLAY_NAME)
         self.setMinimumSize(900, 650)
         self.resize(1100, 780)
         self.setStyleSheet(APP_STYLESHEET)
@@ -684,7 +687,7 @@ class GKMediaRandomizerApp(QMainWindow):
         # Title
         painter.setPen(QColor(TEXT_PRIMARY))
         painter.setFont(QFont("Segoe UI", 26, QFont.Bold))
-        painter.drawText(welcome.rect().adjusted(0, -40, 0, 0), Qt.AlignCenter, "GKMediaRandomizer")
+        painter.drawText(welcome.rect().adjusted(0, -40, 0, 0), Qt.AlignCenter, APP_DISPLAY_NAME)
 
         # Subtitle
         painter.setPen(QColor(TEXT_SECONDARY))
@@ -1137,9 +1140,9 @@ def _install_crash_handler():
 
     def handle_exception(exc_type, exc_value, exc_tb):
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        log_path = desktop / f"GKMediaRandomizer_crash_{timestamp}.log"
+        log_path = desktop / f"{APP_INTERNAL_NAME}_crash_{timestamp}.log"
         lines = [
-            "GKMediaRandomizer — Crash Report",
+            f"{APP_DISPLAY_NAME} - Crash Report",
             "=" * 50,
             f"Time     : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             f"Version  : {APP_VERSION}",
@@ -1176,7 +1179,7 @@ def main():
     # Single-instance guard: if the auto-update helper fires its relaunch
     # late while the user has already manually opened the app, the second
     # instance exits silently instead of stacking another window.
-    _lock_dir = Path(os.environ.get("APPDATA", Path.home())) / "GKMediaRandomizer"
+    _lock_dir = Path(os.environ.get("APPDATA", Path.home())) / APP_INTERNAL_NAME
     _lock_dir.mkdir(parents=True, exist_ok=True)
     _lock = QLockFile(str(_lock_dir / "app.lock"))
     _lock.setStaleLockTime(5000)
@@ -1191,7 +1194,7 @@ def main():
         if exe_icon.exists():
             app.setWindowIcon(QIcon(str(exe_icon)))
 
-    window = GKMediaRandomizerApp()
+    window = DriftwayMediaRandomizerApp()
     sys.exit(app.exec())
 
 

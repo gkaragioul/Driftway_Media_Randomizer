@@ -33,7 +33,51 @@ class RepoMetadataTests(unittest.TestCase):
         self.assertIn("<h1>Driftway Media Randomizer</h1>", readme)
         self.assertIn("releases/latest", readme)
         self.assertIn("&bull;", readme)
-        self.assertNotIn("GKMediaRandomizer", readme)
+        self.assertNotIn("GK" + "MediaRandomizer", readme)
+
+    def test_installer_build_outputs_driftway_named_installer(self):
+        installer = (ROOT / "Windows" / "installer.iss").read_text(encoding="utf-8")
+        build = (ROOT / "Windows" / "build.bat").read_text(encoding="utf-8")
+        spec = (ROOT / "Windows" / "DriftwayMediaRandomizer.spec").read_text(encoding="utf-8")
+
+        self.assertIn('#define MyAppName "Driftway Media Randomizer"', installer)
+        self.assertIn('#define MyAppExeName "DriftwayMediaRandomizer.exe"', installer)
+        self.assertIn("OutputBaseFilename=Driftway_Media_Randomizer_Setup", installer)
+        self.assertIn("dist\\DriftwayMediaRandomizer\\*", installer)
+        self.assertIn("Driftway_Media_Randomizer_Setup.exe", build)
+        self.assertIn("name='DriftwayMediaRandomizer'", spec)
+        self.assertNotIn("GK" + "MediaRandomizer_Setup", installer + build)
+        self.assertNotIn("GK" + "MediaRandomizer.spec", build)
+
+    def test_user_visible_branding_uses_driftway_name(self):
+        files = [
+            ROOT / "Windows" / "gkmedia_randomizer.py",
+            ROOT / "Windows" / "installer.iss",
+            ROOT / "Windows" / "build.bat",
+            ROOT / "Windows" / "assets" / "license.txt",
+            ROOT / "Windows" / "assets" / "THIRD_PARTY_NOTICES.txt",
+            ROOT / "LICENSE",
+            ROOT / "CONTRIBUTING.md",
+        ]
+        text = "\n".join(path.read_text(encoding="utf-8") for path in files)
+
+        self.assertIn("Driftway Media Randomizer", text)
+        self.assertNotIn("GK" + "MediaRandomizer", text)
+
+    def test_legacy_branding_is_removed_from_project_metadata(self):
+        old_brand = "GK" + "MediaRandomizer"
+        files = [
+            ROOT / "CLAUDE.md",
+            ROOT / "Package.swift",
+            ROOT / "Sources" / "DriftwayMediaRandomizer" / "DriftwayMediaRandomizerApp.swift",
+        ]
+        missing = [str(path) for path in files if not path.exists()]
+        self.assertEqual([], missing)
+        text = "\n".join(path.read_text(encoding="utf-8") for path in files)
+        repo_paths = [path.as_posix() for path in ROOT.rglob("*") if ".git" not in path.parts]
+
+        self.assertNotIn(old_brand, text)
+        self.assertFalse(any(old_brand in path for path in repo_paths))
 
 
 if __name__ == "__main__":
