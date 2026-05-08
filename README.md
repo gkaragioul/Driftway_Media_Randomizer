@@ -6,13 +6,13 @@
 
 <p align="center">
   <strong>Cross-platform media viewer that randomizes playback from a selected folder.</strong><br>
-  Images, videos, VLC playback, keyboard navigation, instant recycle-bin delete, and SHA256-verified updates.
+  Browse images and videos in a shuffled, keyboard-friendly viewer.
 </p>
 
 <p align="center">
-  <a href="https://github.com/karagioules/GKMediaRandomizer_Releases/releases/latest">Download</a> -
   <a href="#features">Features</a> -
-  <a href="#auto-update-system">Auto-Updates</a> -
+  <a href="#usage">Usage</a> -
+  <a href="#keyboard-controls">Controls</a> -
   <a href="#build-from-source">Build</a> -
   <a href="#license">License</a>
 </p>
@@ -20,6 +20,10 @@
 ![Windows](https://img.shields.io/badge/Windows-10+-0078D6.svg)
 ![macOS](https://img.shields.io/badge/macOS-SwiftUI-000000.svg)
 ![License](https://img.shields.io/badge/License-Freeware-red.svg)
+
+## Overview
+
+GKMediaRandomizer is a media viewer for rediscovering images and videos from a selected folder. It scans media recursively, shuffles playback order, supports fast keyboard navigation, and keeps deletion recoverable by moving files to the Recycle Bin.
 
 ## Features
 
@@ -29,7 +33,6 @@
 - **Video playback with auto-looping**: Powered by VLC for reliable playback
 - **Keyboard-driven navigation**: Arrow keys, spacebar, and delete key for fast browsing
 - **Instant delete to Recycle Bin**: Remove unwanted files while keeping them recoverable
-- **Automatic updates**: SHA256-verified downloads from GitHub Releases, silent install, and automatic relaunch
 - **Session memory**: Picks up from the last selected folder
 - **Simple Windows installer**: Inno Setup installer with desktop and Start Menu shortcuts
 
@@ -40,6 +43,13 @@
 | **Windows** | Python 3 + PySide6 + VLC | `Windows/` |
 | **macOS** | Swift + SwiftUI + AVKit | `Sources/` |
 
+## Usage
+
+1. Launch GKMediaRandomizer.
+2. Click **Open Folder** to choose a folder with images and videos.
+3. Use arrow keys or spacebar to navigate.
+4. Press **Delete** to move the current file to the Recycle Bin.
+
 ## Keyboard Controls
 
 | Key | Action |
@@ -49,10 +59,6 @@
 | **Space** | Next media |
 | **Delete** | Move current file to Recycle Bin |
 
-## Download
-
-Grab the latest installer from [Releases](https://github.com/karagioules/GKMediaRandomizer_Releases/releases/latest).
-
 ## Build From Source
 
 ```bash
@@ -61,26 +67,7 @@ pip install PySide6 python-vlc send2trash
 python gkmedia_randomizer.py
 
 build.bat
-# Output: Windows/dist-installer/GKMediaRandomizer_Setup.exe
 ```
-
-## Usage
-
-1. Launch GKMediaRandomizer.
-2. Click **Open Folder** to choose a folder with images and videos.
-3. Use arrow keys or spacebar to navigate.
-4. Press **Delete** to move the current file to the Recycle Bin.
-
-## Auto-Update System
-
-The app checks GitHub Releases on launch:
-
-- Compares the latest release tag with the current app version
-- Prompts with release notes before downloading
-- Downloads the `.exe` installer from the release assets
-- Verifies download integrity when release notes include `SHA256: <64-char hex>`
-- Installs silently and relaunches after the installer exits
-- Caches ETags to reduce GitHub API usage
 
 ## System Requirements
 
