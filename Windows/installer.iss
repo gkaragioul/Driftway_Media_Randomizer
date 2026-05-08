@@ -2,7 +2,7 @@
 ; Builds from PyInstaller one-dir output in Windows\dist\DriftwayMediaRandomizer\
 
 #define MyAppName "Driftway Media Randomizer"
-#define MyAppVersion "2.2.8"
+#define MyAppVersion "2.2.9"
 #define MyAppPublisher "George Karagioules"
 #define MyAppExeName "DriftwayMediaRandomizer.exe"
 #define MyAppId "{{B8F2D3A1-7C4E-4F5A-9B6D-2E8F1A3C5D7E}"
