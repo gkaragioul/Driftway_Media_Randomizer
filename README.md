@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/karagioules/Driftplay_RandomMedia_Player/releases/latest">Download</a> -
+  <a href="https://github.com/karagioules/GKMediaRandomizer_Releases/releases/latest">Download</a> -
   <a href="#features">Features</a> -
   <a href="#auto-update-system">Auto-Updates</a> -
   <a href="#build-from-source">Build</a> -
@@ -51,7 +51,7 @@
 
 ## Download
 
-Grab the latest installer from [Releases](https://github.com/karagioules/Driftplay_RandomMedia_Player/releases/latest).
+Grab the latest installer from [Releases](https://github.com/karagioules/GKMediaRandomizer_Releases/releases/latest).
 
 ## Build From Source
 
