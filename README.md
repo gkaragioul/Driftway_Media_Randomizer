@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="GKMediaRandomizer.png" alt="GKMediaRandomizer logo" width="128">
-</p>
-
 <h1 align="center">GKMediaRandomizer</h1>
 
 <p align="center">
