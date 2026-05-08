@@ -49,6 +49,16 @@ class RepoMetadataTests(unittest.TestCase):
         self.assertNotIn("GK" + "MediaRandomizer_Setup", installer + build)
         self.assertNotIn("GK" + "MediaRandomizer.spec", build)
 
+    def test_assisted_update_relaunches_new_executable_after_rename(self):
+        source = (ROOT / "Windows" / "gkmedia_randomizer.py").read_text(encoding="utf-8")
+        installer = (ROOT / "Windows" / "installer.iss").read_text(encoding="utf-8")
+
+        self.assertIn('target_app_exe = os.path.join(os.path.dirname(sys.executable), f"{APP_INTERNAL_NAME}.exe")', source)
+        self.assertIn("Relaunching: {target_app_exe}", source)
+        self.assertNotIn("Relaunching: {app_exe}", source)
+        self.assertIn('[InstallDelete]', installer)
+        self.assertIn('Name: "{app}\\*MediaRandomizer.exe"', installer)
+
     def test_user_visible_branding_uses_driftway_name(self):
         files = [
             ROOT / "Windows" / "gkmedia_randomizer.py",

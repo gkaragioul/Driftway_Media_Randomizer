@@ -6,7 +6,7 @@ Distributed as Inno Setup installer with auto-update from GitHub releases.
 
 APP_DISPLAY_NAME = "Driftway Media Randomizer"
 APP_INTERNAL_NAME = "DriftwayMediaRandomizer"
-APP_VERSION = "2.2.7"
+APP_VERSION = "2.2.8"
 REPO_OWNER = "karagioules"
 REPO_NAME = "Driftway_Media_Randomizer"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
@@ -1025,7 +1025,7 @@ class DriftwayMediaRandomizerApp(QMainWindow):
         except Exception:
             pass
 
-        app_exe = sys.executable
+        target_app_exe = os.path.join(os.path.dirname(sys.executable), f"{APP_INTERNAL_NAME}.exe")
         tmp = tempfile.gettempdir()
         ts = int(datetime.now().timestamp())
 
@@ -1055,9 +1055,9 @@ try {{
 # Wait up to 30s for the new app exe to exist AND not be file-locked by Inno Setup.
 $found = $false
 for ($i = 0; $i -lt 60; $i++) {{
-    if (Test-Path '{app_exe}') {{
+    if (Test-Path '{target_app_exe}') {{
         try {{
-            $f = [IO.File]::Open('{app_exe}', 'Open', 'Read', 'ReadWrite')
+            $f = [IO.File]::Open('{target_app_exe}', 'Open', 'Read', 'ReadWrite')
             $f.Close()
             $found = $true
             Log "App exe ready after $($i * 500)ms"
@@ -1068,8 +1068,8 @@ for ($i = 0; $i -lt 60; $i++) {{
 }}
 
 if ($found) {{
-    Log "Relaunching: {app_exe}"
-    Start-Process '{app_exe}'
+    Log "Relaunching: {target_app_exe}"
+    Start-Process '{target_app_exe}'
     Log "Relaunch issued"
 }} else {{
     Log "App exe never became available; skipping relaunch"
