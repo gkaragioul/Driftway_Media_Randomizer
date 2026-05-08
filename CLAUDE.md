@@ -1,7 +1,7 @@
 # GKMediaRandomizer
 
 ## Project Overview
-Cross-platform media viewer (images & videos) that randomizes playback order from a selected folder. Originally a Swift/SwiftUI macOS app, now also available as a Windows desktop app (Python + PySide6) distributed via Inno Setup installer with auto-updates.
+Cross-platform media viewer (images & videos) that randomizes playback order from a selected folder. Product name: **GKMediaRandomizer**. Windows desktop app uses Python + PySide6 and is distributed via Inno Setup installer with auto-updates.
 
 ## Architecture
 - **macOS**: Swift/SwiftUI native app (in `Sources/GKMediaRandomizer/`)
@@ -34,7 +34,7 @@ build.bat                            # Build installer .exe
 ## Version & Updates
 - Version is set in `Windows/gkmedia_randomizer.py` → `APP_VERSION` constant
 - Update system checks GitHub releases at `karagioules/GKMediaRandomizer_Releases`
-- Update flow (matches GKMD pattern):
+- Update flow:
   1. Check `api.github.com/repos/karagioules/GKMediaRandomizer_Releases/releases/latest`
   2. Compare tag version with current app version
   3. Prompt user with release notes
@@ -47,7 +47,6 @@ build.bat                            # Build installer .exe
 - Version displayed in bottom control bar
 
 ## GitHub
-- Source repo: `https://github.com/karagioules/Driftplay_RandomMedia_Player` (private source code)
 - Releases repo: `https://github.com/karagioules/GKMediaRandomizer_Releases` (public, for auto-updates)
 - Releases should contain the Inno Setup `.exe` installer with SHA256 hash in release notes body
 - SHA256 format in release notes: `SHA256: <64-char hex>`
@@ -71,6 +70,6 @@ build.bat                            # Build installer .exe
 - Inno Setup installer with EULA, Program Files install, desktop shortcut
 
 ## Legacy Files (not part of Windows app)
-- `Sources/GKMediaRandomizer/` — macOS SwiftUI version (legacy name)
+- `Sources/GKMediaRandomizer/` — macOS SwiftUI version
 - `Package.swift` — Swift Package Manager manifest
 - `AppIcon.iconset/` — macOS icon assets
