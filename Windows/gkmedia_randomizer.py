@@ -7,7 +7,7 @@ Distributed as Inno Setup installer with auto-update from GitHub releases.
 APP_DISPLAY_NAME = "Driftway Media Randomizer"
 APP_INTERNAL_NAME = "DriftwayMediaRandomizer"
 APP_VERSION = "2.2.9"
-REPO_OWNER = "karagioules"
+REPO_OWNER = "georgekgr12"
 REPO_NAME = "Driftway_Media_Randomizer"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
 USER_AGENT = f"{APP_INTERNAL_NAME}/{APP_VERSION}"

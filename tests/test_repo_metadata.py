@@ -22,7 +22,7 @@ class RepoMetadataTests(unittest.TestCase):
     def test_update_checker_uses_primary_repository_releases(self):
         constants, source = _read_constants()
 
-        self.assertEqual(constants["REPO_OWNER"], "karagioules")
+        self.assertEqual(constants["REPO_OWNER"], "georgekgr12")
         self.assertEqual(constants["REPO_NAME"], "Driftway_Media_Randomizer")
         self.assertIn("/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest", source)
 

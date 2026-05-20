@@ -12,7 +12,7 @@ https://github.com/user-attachments/assets/c58bc261-bf07-49f2-8623-7cc61c7228aa
 </p>
 
 <p>
-  <a href="https://github.com/karagioules/Driftway_Media_Randomizer/releases/latest">Download</a> &bull;
+  <a href="https://github.com/georgekgr12/Driftway_Media_Randomizer/releases/latest">Download</a> &bull;
   <a href="#features">Features</a> &bull;
   <a href="#requirements">Requirements</a> &bull;
   <a href="#building">Building</a> &bull;
