@@ -59,9 +59,4 @@ echo  Installer: dist-installer\Driftway_Media_Randomizer_Setup.exe
 echo ============================================
 echo.
 
-REM Generate SHA256 for release notes
-echo SHA256 hash for release notes:
-certutil -hashfile "dist-installer\Driftway_Media_Randomizer_Setup.exe" SHA256 | findstr /V "hash"
-echo.
-
 pause

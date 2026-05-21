@@ -1,33 +1,23 @@
 #!/usr/bin/env python3
 """
 Driftway Media Randomizer - Windows app to randomly view images and videos
-Distributed as Inno Setup installer with auto-update from GitHub releases.
+Distributed as Inno Setup installer.
 """
 
 APP_DISPLAY_NAME = "Driftway Media Randomizer"
 APP_INTERNAL_NAME = "DriftwayMediaRandomizer"
-APP_VERSION = "2.2.9"
-REPO_OWNER = "georgekgr12"
-REPO_NAME = "Driftway_Media_Randomizer"
-GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
-USER_AGENT = f"{APP_INTERNAL_NAME}/{APP_VERSION}"
+APP_VERSION = "2.3.0"
 
 import sys
 import os
-import re
 import json
 import random
 import traceback
 import platform
-import hashlib
-import tempfile
-import subprocess
 from pathlib import Path
 from enum import Enum
 from typing import List, Optional
 from datetime import datetime
-from urllib.request import urlopen, Request
-from urllib.error import URLError
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QVBoxLayout,
@@ -215,156 +205,6 @@ class MediaScanner(QThread):
         self._is_running = False
 
 
-class UpdateChecker(QThread):
-    result = Signal(dict)
-    error = Signal(str)
-
-    def __init__(self, is_auto: bool = False, cache_dir: Optional[Path] = None):
-        super().__init__()
-        self.is_auto = is_auto
-        self._cache_file = (cache_dir / "etag_cache.json") if cache_dir else None
-
-    def _load_cache(self) -> dict:
-        try:
-            if self._cache_file and self._cache_file.exists():
-                return json.loads(self._cache_file.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-        return {}
-
-    def _save_cache(self, etag: str, data: dict):
-        try:
-            if self._cache_file:
-                self._cache_file.write_text(json.dumps({
-                    "etag": etag, "data": data,
-                }, ensure_ascii=False), encoding="utf-8")
-        except Exception:
-            pass
-
-    def run(self):
-        try:
-            cache = self._load_cache()
-            headers = {
-                "User-Agent": USER_AGENT,
-                "Accept": "application/vnd.github.v3+json",
-            }
-            if cache.get("etag"):
-                headers["If-None-Match"] = cache["etag"]
-
-            req = Request(GITHUB_API_URL, headers=headers)
-            try:
-                with urlopen(req, timeout=15) as resp:
-                    etag = resp.headers.get("ETag", "")
-                    release = json.loads(resp.read().decode())
-                    if etag:
-                        self._save_cache(etag, release)
-            except URLError as e:
-                if hasattr(e, 'code') and e.code == 304:
-                    # Not modified — use cached data (doesn't count against rate limit)
-                    release = cache.get("data")
-                    if not release:
-                        self.result.emit({})
-                        return
-                else:
-                    raise
-
-            tag = release.get("tag_name", "")
-            if not tag:
-                self.result.emit({})
-                return
-
-            latest = tag.lstrip("v")
-            if not self._is_newer(latest, APP_VERSION):
-                self.result.emit({})
-                return
-
-            assets = release.get("assets", [])
-            exe_asset = next((a for a in assets if a["name"].endswith(".exe")), None)
-            if not exe_asset:
-                self.result.emit({})
-                return
-
-            body = release.get("body", "")
-            sha_match = re.search(r"SHA256:\s*([a-fA-F0-9]{64})", body, re.IGNORECASE)
-            expected_sha = sha_match.group(1).lower() if sha_match else None
-
-            self.result.emit({
-                "version": tag,
-                "download_url": exe_asset["browser_download_url"],
-                "file_name": exe_asset["name"],
-                "release_notes": body or "No release notes.",
-                "expected_sha256": expected_sha,
-                "is_auto": self.is_auto,
-            })
-        except Exception as e:
-            if not self.is_auto:
-                msg = str(e)
-                if not msg:
-                    msg = type(e).__name__
-                if hasattr(e, 'code'):
-                    msg = f"HTTP {e.code}: {getattr(e, 'reason', 'Unknown error')}"
-                self.error.emit(msg)
-            else:
-                self.result.emit({})
-
-    @staticmethod
-    def _is_newer(latest: str, current: str) -> bool:
-        lp = [int(x) for x in latest.split(".")[:3]]
-        cp = [int(x) for x in current.split(".")[:3]]
-        while len(lp) < 3: lp.append(0)
-        while len(cp) < 3: cp.append(0)
-        return lp > cp
-
-
-class UpdateDownloader(QThread):
-    progress = Signal(int)
-    finished = Signal(str)
-    error = Signal(str)
-
-    def __init__(self, url: str, file_name: str, expected_sha256: Optional[str]):
-        super().__init__()
-        self.url = url
-        self.file_name = file_name
-        self.expected_sha256 = expected_sha256
-
-    def run(self):
-        try:
-            temp_dir = tempfile.gettempdir()
-            dest = os.path.join(temp_dir, f"gkmr_{int(datetime.now().timestamp())}_{self.file_name}")
-            req = Request(self.url, headers={"User-Agent": USER_AGENT})
-            resp = urlopen(req, timeout=120)
-            total = int(resp.headers.get("Content-Length", 0))
-            sha = hashlib.sha256()
-            downloaded = 0
-            with open(dest, "wb") as f:
-                while True:
-                    chunk = resp.read(65536)
-                    if not chunk:
-                        break
-                    f.write(chunk)
-                    sha.update(chunk)
-                    downloaded += len(chunk)
-                    if total > 0:
-                        self.progress.emit(int(downloaded * 100 / total))
-
-            actual_sha = sha.hexdigest()
-            if self.expected_sha256 and actual_sha != self.expected_sha256:
-                try:
-                    os.unlink(dest)
-                except Exception:
-                    pass
-                self.error.emit(
-                    f"Integrity check failed.\n\n"
-                    f"Expected: {self.expected_sha256}\n"
-                    f"Actual:   {actual_sha}\n\n"
-                    f"The downloaded file has been deleted for safety."
-                )
-                return
-            self.finished.emit(dest)
-        except Exception as e:
-            self.error.emit(str(e) or type(e).__name__)
-
-
 # ── About Dialog ─────────────────────────────────────────────
 def _load_license_text() -> str:
     candidates = []
@@ -522,24 +362,12 @@ class DriftwayMediaRandomizerApp(QMainWindow):
         self.current_index = -1
         self.current_folder: Optional[Path] = None
         self.scanner_thread: Optional[MediaScanner] = None
-        self._update_checker: Optional[UpdateChecker] = None
-        self._update_downloader: Optional[UpdateDownloader] = None
-        self._update_is_auto = False
-        self._update_dialog_open = False
         self._vlc_media: Optional[object] = None   # keeps VLC media object alive
         self.config_file = Path.home() / ".gkmedia_randomizer_config.json"
-        self._app_data_dir = Path(os.environ.get("APPDATA", Path.home())) / APP_INTERNAL_NAME
-        self._app_data_dir.mkdir(parents=True, exist_ok=True)
-        self._dismissed_file = self._app_data_dir / "dismissed_update.txt"
-        self._pending_file = self._app_data_dir / "pending_update.txt"
 
         self.load_settings()
         self._build_ui()
         self._setup_shortcuts()
-
-        self._check_pending_update_failed()
-        self._cleanup_orphaned_scripts()
-        QTimer.singleShot(2000, lambda: self._check_for_updates(is_auto=True))
 
     # ── UI Construction ──────────────────────────────────────
     def _build_ui(self):
@@ -625,16 +453,13 @@ class DriftwayMediaRandomizerApp(QMainWindow):
 
         tb_layout.addStretch()
 
-        # Right group: version, about, update
+        # Right group: version, about
         self.version_label = QLabel(f"v{APP_VERSION}")
         self.version_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
         tb_layout.addWidget(self.version_label)
 
         self.btn_about = self._make_btn("About", self._show_about)
         tb_layout.addWidget(self.btn_about)
-
-        self.btn_update = self._make_btn("Check for Updates", lambda: self._check_for_updates(is_auto=False))
-        tb_layout.addWidget(self.btn_update)
 
         root.addWidget(toolbar)
 
@@ -875,227 +700,6 @@ class DriftwayMediaRandomizerApp(QMainWindow):
         else:
             super().keyPressEvent(event)
 
-    # ── Auto-update system ───────────────────────────────────
-    def _check_pending_update_failed(self):
-        try:
-            if not self._pending_file.exists():
-                return
-            expected = self._pending_file.read_text(encoding="utf-8").strip()
-            self._pending_file.unlink(missing_ok=True)
-            if not expected:
-                return
-            expected_clean = expected.lstrip("v")
-            if UpdateChecker._is_newer(expected_clean, APP_VERSION):
-                QMessageBox.warning(
-                    self, "Update Failed",
-                    f"The update to {expected} did not apply successfully.\n"
-                    f"You are still running v{APP_VERSION}.\n\n"
-                    f"Please try updating again or download manually."
-                )
-        except Exception:
-            pass
-
-    def _cleanup_orphaned_scripts(self):
-        try:
-            tmp = tempfile.gettempdir()
-            for f in os.listdir(tmp):
-                if f.startswith("gkmr_relaunch_") or f.startswith("gkmr_launcher_"):
-                    try:
-                        os.unlink(os.path.join(tmp, f))
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-
-    def _is_dismissed(self, tag: str) -> bool:
-        try:
-            if not self._dismissed_file.exists():
-                return False
-            return self._dismissed_file.read_text(encoding="utf-8").strip() == tag
-        except Exception:
-            return False
-
-    def _dismiss_version(self, tag: str):
-        try:
-            self._dismissed_file.write_text(tag, encoding="utf-8")
-        except Exception:
-            pass
-
-    def _check_for_updates(self, is_auto: bool = False):
-        # Don't stack: skip if a checker is in flight, a dialog is up, or a
-        # download/install is in progress.
-        if self._update_checker and self._update_checker.isRunning():
-            return
-        if self._update_dialog_open:
-            return
-        if self._update_downloader and self._update_downloader.isRunning():
-            return
-        # Disconnect the previous checker's signals so a queued stale result
-        # can't fire a second dialog while a fresh check is in flight.
-        if self._update_checker is not None:
-            try:
-                self._update_checker.result.disconnect(self._on_update_check_result)
-                self._update_checker.error.disconnect(self._on_update_check_error)
-            except (RuntimeError, TypeError):
-                pass
-        self._update_is_auto = is_auto
-        # Disable the button immediately so a click can't enqueue a parallel
-        # manual check while the auto-check's signal is in transit.
-        self.btn_update.setEnabled(False)
-        if not is_auto:
-            self.btn_update.setText("Checking...")
-        self._update_checker = UpdateChecker(is_auto=is_auto, cache_dir=self._app_data_dir)
-        self._update_checker.result.connect(self._on_update_check_result)
-        self._update_checker.error.connect(self._on_update_check_error)
-        self._update_checker.start()
-
-    def _on_update_check_result(self, info: dict):
-        self.btn_update.setText("Check for Updates")
-        self.btn_update.setEnabled(True)
-
-        # If a dialog is already up (from a prior result that's still being
-        # responded to in a nested event loop), ignore this stale signal.
-        if self._update_dialog_open:
-            return
-
-        if not info:
-            if not self._update_is_auto:
-                self.version_label.setText(f"v{APP_VERSION} — up to date")
-            return
-
-        is_auto = info.get("is_auto", False)
-        tag = info["version"]
-
-        if is_auto and self._is_dismissed(tag):
-            return
-
-        self._update_dialog_open = True
-        try:
-            reply = QMessageBox.question(
-                self, "Update Available",
-                f"A new version is available: {tag}\n\n"
-                f"{info.get('release_notes', '')}\n\n"
-                f"Download and install now?",
-                QMessageBox.Yes | QMessageBox.No,
-            )
-        finally:
-            self._update_dialog_open = False
-
-        if reply == QMessageBox.Yes:
-            self._download_update(info)
-        elif is_auto:
-            self._dismiss_version(tag)
-
-    def _on_update_check_error(self, error_msg: str):
-        self.btn_update.setText("Check for Updates")
-        self.btn_update.setEnabled(True)
-        QMessageBox.warning(
-            self, "Update Check Failed",
-            f"Could not check for updates:\n\n{error_msg}"
-        )
-
-    def _download_update(self, info: dict):
-        self.btn_update.setText("Downloading: 0%")
-        self.btn_update.setEnabled(False)
-        self._pending_update_info = info
-        self._update_downloader = UpdateDownloader(
-            info["download_url"], info["file_name"], info.get("expected_sha256")
-        )
-        self._update_downloader.progress.connect(
-            lambda pct: self.btn_update.setText(f"Downloading: {pct}%")
-        )
-        self._update_downloader.finished.connect(self._on_download_finished)
-        self._update_downloader.error.connect(self._on_download_error)
-        self._update_downloader.start()
-
-    def _on_download_finished(self, file_path: str):
-        self.btn_update.setText("Installing...")
-        self._install_update(file_path, self._pending_update_info["version"])
-
-    def _on_download_error(self, error_msg: str):
-        self.btn_update.setText("Check for Updates")
-        self.btn_update.setEnabled(True)
-        QMessageBox.critical(self, "Download Failed", error_msg)
-
-    def _install_update(self, installer_path: str, version: str):
-        if not os.path.exists(installer_path):
-            return
-        try:
-            self._pending_file.write_text(version, encoding="utf-8")
-        except Exception:
-            pass
-
-        target_app_exe = os.path.join(os.path.dirname(sys.executable), f"{APP_INTERNAL_NAME}.exe")
-        tmp = tempfile.gettempdir()
-        ts = int(datetime.now().timestamp())
-
-        log_path = os.path.join(tmp, f"gkmr_update_{ts}.log")
-        ps1_path = os.path.join(tmp, f"gkmr_relaunch_{ts}.ps1")
-
-        # PowerShell helper. Writes a timestamped log so failures are diagnosable.
-        # Uses -PassThru + WaitForExit() (more reliable than -Wait with -Verb RunAs)
-        # and polls Test-Path + a non-locked file check for up to 30s before launch.
-        ps1_script = f"""$ErrorActionPreference = 'Continue'
-function Log {{ param($m) "$([DateTime]::Now.ToString('HH:mm:ss.fff')) $m" | Out-File -FilePath '{log_path}' -Append -Encoding utf8 }}
-
-Log "Helper starting (pid $PID)"
-Start-Sleep -Seconds 3
-
-try {{
-    Log "Launching installer (elevated): {installer_path}"
-    $proc = Start-Process -FilePath '{installer_path}' -ArgumentList '/SILENT','/SUPPRESSMSGBOXES','/NORESTART' -Verb RunAs -PassThru -ErrorAction Stop
-    $proc.WaitForExit()
-    Log "Installer exited with code $($proc.ExitCode)"
-}} catch {{
-    Log "Installer launch failed: $_"
-    Remove-Item '{ps1_path}' -Force -ErrorAction SilentlyContinue
-    exit 1
-}}
-
-# Wait up to 30s for the new app exe to exist AND not be file-locked by Inno Setup.
-$found = $false
-for ($i = 0; $i -lt 60; $i++) {{
-    if (Test-Path '{target_app_exe}') {{
-        try {{
-            $f = [IO.File]::Open('{target_app_exe}', 'Open', 'Read', 'ReadWrite')
-            $f.Close()
-            $found = $true
-            Log "App exe ready after $($i * 500)ms"
-            break
-        }} catch {{ }}
-    }}
-    Start-Sleep -Milliseconds 500
-}}
-
-if ($found) {{
-    Log "Relaunching: {target_app_exe}"
-    Start-Process '{target_app_exe}'
-    Log "Relaunch issued"
-}} else {{
-    Log "App exe never became available; skipping relaunch"
-}}
-
-Remove-Item '{ps1_path}' -Force -ErrorAction SilentlyContinue
-"""
-        with open(ps1_path, "w", encoding="utf-8") as f:
-            f.write(ps1_script)
-
-        vbs_path = os.path.join(tmp, f"gkmr_launcher_{ts}.vbs")
-        vbs_lines = [
-            'Set ws = CreateObject("WScript.Shell")',
-            f'ws.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{ps1_path}""", 0, True',
-            'CreateObject("Scripting.FileSystemObject").DeleteFile WScript.ScriptFullName',
-        ]
-        with open(vbs_path, "w", encoding="utf-8") as f:
-            f.write("\r\n".join(vbs_lines))
-
-        subprocess.Popen(
-            ["wscript.exe", vbs_path],
-            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
-            close_fds=True,
-        )
-        QTimer.singleShot(500, QApplication.instance().quit)
-
     # ── Settings ─────────────────────────────────────────────
     def save_settings(self):
         try:
@@ -1176,9 +780,7 @@ def main():
 
     app = QApplication(sys.argv)
 
-    # Single-instance guard: if the auto-update helper fires its relaunch
-    # late while the user has already manually opened the app, the second
-    # instance exits silently instead of stacking another window.
+    # Single-instance guard: prevents stacking a second window on double-launch.
     _lock_dir = Path(os.environ.get("APPDATA", Path.home())) / APP_INTERNAL_NAME
     _lock_dir.mkdir(parents=True, exist_ok=True)
     _lock = QLockFile(str(_lock_dir / "app.lock"))
