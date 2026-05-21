@@ -12,13 +12,15 @@ class RepoMetadataTests(unittest.TestCase):
         self.assertIn("<div align=\"center\">", readme)
         self.assertIn("<h1>Driftway Media Randomizer</h1>", readme)
         self.assertIn("No update prompts", readme)
-        self.assertNotIn("releases/latest", readme)
+        self.assertIn(
+            'href="https://github.com/gkaragioul/Driftway_Media_Randomizer/releases/latest">Download</a>',
+            readme,
+        )
         self.assertIn("&bull;", readme)
         self.assertNotIn("GK" + "MediaRandomizer", readme)
 
     def test_update_system_references_are_removed(self):
         files = [
-            ROOT / "README.md",
             ROOT / "AGENTS.md",
             ROOT / "CLAUDE.md",
             ROOT / "LICENSE",
