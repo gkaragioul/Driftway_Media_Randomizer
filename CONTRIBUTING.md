@@ -8,7 +8,7 @@ Driftway Media Randomizer is proprietary freeware. Public issue reports, reprodu
 - Whether the file is an image or video
 - Media format and codec, if known
 - Expected result and actual result
-- Crash log or update log, if one was generated
+- Crash log, if one was generated
 
 ## Security Or Licensing Reports
 

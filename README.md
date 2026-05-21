@@ -8,11 +8,10 @@ https://github.com/user-attachments/assets/c58bc261-bf07-49f2-8623-7cc61c7228aa
 
 <p>
   <strong>Free randomized media playback for Windows and macOS. Shuffle images and videos from any folder.</strong><br>
-  <em>Recursive scanning, VLC-powered video playback, keyboard navigation, Recycle Bin deletes, and GitHub Releases updates from this repository.</em>
+  <em>Recursive scanning, VLC-powered video playback, keyboard navigation, and Recycle Bin deletes.</em>
 </p>
 
 <p>
-  <a href="https://github.com/georgekgr12/Driftway_Media_Randomizer/releases/latest">Download</a> &bull;
   <a href="#features">Features</a> &bull;
   <a href="#requirements">Requirements</a> &bull;
   <a href="#building">Building</a> &bull;
@@ -37,13 +36,7 @@ https://github.com/user-attachments/assets/c58bc261-bf07-49f2-8623-7cc61c7228aa
 - **Recoverable deletion**: Delete moves the current file to the Recycle Bin.
 - **Session memory**: Remembers the last selected folder between launches.
 - **Simple Windows installer**: Inno Setup installer creates desktop and Start Menu shortcuts.
-
-### Updates
-- Checks this repository's GitHub Releases for new Windows installer builds.
-- Supports ETag caching to reduce GitHub API usage.
-- Verifies installer SHA256 hashes when release notes include `SHA256: <64-char hex>`.
-- Tracks skipped versions so dismissed automatic prompts stay quiet.
-- Detects failed installs on the next launch and warns the user.
+- **No update prompts**: The app does not check GitHub or offer automatic updates.
 
 ## Platforms
 
@@ -85,7 +78,7 @@ python gkmedia_randomizer.py
 build.bat
 ```
 
-The Windows release build creates the installer under `Windows/dist-installer/`. Publish the generated `.exe` in this repository's Releases tab and include its SHA256 hash in the release notes.
+The Windows release build creates the installer under `Windows/dist-installer/`.
 
 ## License
 
