@@ -42,7 +42,7 @@ class RepoMetadataTests(unittest.TestCase):
 
         self.assertIn('#define MyAppName "Driftway Media Randomizer"', installer)
         self.assertIn('#define MyAppExeName "DriftwayMediaRandomizer.exe"', installer)
-        self.assertIn('#define MyAppVersion "2.3.0"', installer)
+        self.assertIn('#define MyAppVersion "2.3.1"', installer)
         self.assertIn("OutputBaseFilename=Driftway_Media_Randomizer_Setup", installer)
         self.assertIn("dist\\DriftwayMediaRandomizer\\*", installer)
         self.assertIn("Driftway_Media_Randomizer_Setup.exe", build)
