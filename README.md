@@ -7,8 +7,8 @@ https://github.com/user-attachments/assets/c58bc261-bf07-49f2-8623-7cc61c7228aa
 <hr>
 
 <p>
-  <strong>Free randomized media playback for Windows and macOS. Shuffle images and videos from any folder.</strong><br>
-  <em>Recursive scanning, VLC-powered video playback, keyboard navigation, and Recycle Bin deletes.</em>
+  <strong>Open-source randomized media playback for Windows and macOS. Shuffle images and videos from any folder.</strong><br>
+  <em>MIT-licensed app source with recursive scanning, VLC-powered Windows playback, keyboard navigation, and Recycle Bin deletes.</em>
 </p>
 
 <p>
@@ -83,8 +83,8 @@ The Windows release build creates the installer under `Windows/dist-installer/`.
 
 ## License
 
-Driftway Media Randomizer is proprietary freeware. It is free to use for personal and commercial use, but modification, redistribution, resale, and sublicensing require prior written permission from George Karagioules.
+Driftway Media Randomizer source code and original project assets are released under the [MIT License](LICENSE).
 
-See [LICENSE](LICENSE) for the EULA and [Windows/assets/THIRD_PARTY_NOTICES.txt](Windows/assets/THIRD_PARTY_NOTICES.txt) for bundled third-party notices. Bundled third-party components, including PySide6, Qt, libVLC, python-vlc, send2trash, OpenSSL, libffi, and the Python runtime, retain their respective open-source licenses.
+You may use, copy, modify, merge, publish, distribute, sublicense, and sell copies of the app source, provided the MIT copyright and permission notice are included in copies or substantial portions of the software.
 
-For licensing inquiries, open an issue at https://github.com/gkaragioul/Driftway_Media_Randomizer.
+Bundled third-party components, including PySide6, Qt, libVLC, python-vlc, PyInstaller, send2trash, OpenSSL, libffi, the Python runtime, and Microsoft Visual C++ runtime files, retain their respective licenses. See [Windows/assets/THIRD_PARTY_NOTICES.txt](Windows/assets/THIRD_PARTY_NOTICES.txt) for bundled third-party notices.

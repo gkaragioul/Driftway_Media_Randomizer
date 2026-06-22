@@ -2,10 +2,13 @@
 ; Builds from PyInstaller one-dir output in Windows\dist\DriftwayMediaRandomizer\
 
 #define MyAppName "Driftway Media Randomizer"
-#define MyAppVersion "2.3.1"
+#define MyAppVersion "2.3.2"
 #define MyAppPublisher "George Karagioules"
 #define MyAppExeName "DriftwayMediaRandomizer.exe"
 #define MyAppId "{{B8F2D3A1-7C4E-4F5A-9B6D-2E8F1A3C5D7E}"
+#ifndef PyInstallerOutputDir
+#define PyInstallerOutputDir "dist\DriftwayMediaRandomizer"
+#endif
 
 [Setup]
 AppId={#MyAppId}
@@ -48,7 +51,7 @@ Type: files; Name: "{app}\*MediaRandomizer.exe"
 
 [Files]
 ; PyInstaller one-dir output
-Source: "dist\DriftwayMediaRandomizer\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#PyInstallerOutputDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Icon
 Source: "icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 ; License + third-party notices alongside the binary (also bundled inside via spec)

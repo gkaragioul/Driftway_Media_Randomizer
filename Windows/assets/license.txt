@@ -1,43 +1,27 @@
 Driftway Media Randomizer
-Freeware License Agreement
+MIT License
 
-Copyright (c) 2026 George Karagioules. All rights reserved.
+Copyright (c) 2026 George Karagioules
 
-IMPORTANT - READ CAREFULLY: This End-User License Agreement ("EULA") is a legal agreement between you ("User") and George Karagioules ("Author") for the use of Driftway Media Randomizer ("Software").
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-By installing, copying, or otherwise using the Software, you agree to be bound by the terms of this EULA.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-1. GRANT OF LICENSE
-The Author grants you a non-exclusive, non-transferable, limited license to install and use the Software free of charge for personal and commercial purposes.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
-2. RESTRICTIONS
-You may NOT:
-  (a) Modify, adapt, translate, reverse-engineer, decompile, or disassemble the Software;
-  (b) Redistribute, sell, rent, lease, sublicense, or otherwise transfer the Software or any portion thereof;
-  (c) Remove or alter any proprietary notices, labels, or marks on the Software;
-  (d) Use the Software for any unlawful purpose.
-
-The restrictions in this Section 2 apply only to the original portions of the Software authored by George Karagioules. The Software incorporates third-party components governed by their own license terms, including the GNU Lesser General Public License (LGPL) and other open-source licenses (notably PySide6, Qt, libVLC, python-vlc, send2trash, OpenSSL, libffi, and the Python runtime). Those components retain their original licenses, and nothing in this Agreement limits or supersedes the rights granted to you under those licenses, including the right to reverse-engineer such components for the purpose of debugging modifications, where granted by the applicable license. A list of bundled third-party components and their licenses is provided in THIRD_PARTY_NOTICES.txt installed alongside the Software.
-
-3. INTELLECTUAL PROPERTY
-The Software is protected by copyright laws. The Author retains all intellectual property rights in and to the original portions of the Software.
-
-4. DISCLAIMER OF WARRANTIES
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-
-5. LIMITATION OF LIABILITY
-IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-6. NETWORK BEHAVIOR
-The Software does not check for updates, contact GitHub, transmit telemetry, or send User content to the Author. No network activity is performed by the Software.
-
-7. TERMINATION
-This EULA is effective until terminated. It will terminate automatically if you fail to comply with any term of this agreement. Upon termination, you must destroy all copies of the Software.
-
-8. GOVERNING LAW
-This EULA shall be governed by the laws of the jurisdiction in which the Author resides.
-
-CONTACT
-For licensing inquiries (modification, redistribution, or resale rights), open an issue at https://github.com/gkaragioul/Driftway_Media_Randomizer.
-
-By clicking "I Agree" or installing the Software, you acknowledge that you have read this agreement, understand it, and agree to be bound by its terms.
+Third-party dependencies and bundled runtime components remain under their
+respective licenses. See THIRD_PARTY_NOTICES.txt installed alongside the app
+for PySide6, Qt, libVLC, python-vlc, PyInstaller, Python, OpenSSL, libffi,
+send2trash, and Microsoft Visual C++ runtime notices.

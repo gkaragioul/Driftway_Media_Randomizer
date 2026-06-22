@@ -1,7 +1,7 @@
 # Driftway Media Randomizer
 
 ## Project Overview
-Cross-platform media viewer (images & videos) that randomizes playback order from a selected folder. Product name: **Driftway Media Randomizer**. Windows desktop app uses Python + PySide6 and is distributed via Inno Setup installer without automatic updates.
+Cross-platform, MIT-licensed media viewer (images & videos) that randomizes playback order from a selected folder. Product name: **Driftway Media Randomizer**. Windows desktop app uses Python + PySide6 and is distributed via Inno Setup installer without automatic updates.
 
 ## Architecture
 - **macOS**: Swift/SwiftUI native app (in `Sources/DriftwayMediaRandomizer/`)
@@ -9,16 +9,16 @@ Cross-platform media viewer (images & videos) that randomizes playback order fro
   - `gkmedia_randomizer.py` - Main application: UI, media playback, randomization
   - VLC bundled via PyInstaller for video playback
 - **Build**: PyInstaller (one-dir) -> Inno Setup installer `.exe`
-- **Installer**: Inno Setup with EULA, installs to Program Files, creates desktop/start menu shortcuts
+- **Installer**: Inno Setup with MIT license text, installs to Program Files, creates desktop/start menu shortcuts
 
 ## Key Files
 - `Windows/gkmedia_randomizer.py` - Main app source (UI, media, randomization)
 - `Windows/DriftwayMediaRandomizer.spec` - PyInstaller configuration (one-dir mode with VLC plugins)
 - `Windows/installer.iss` - Inno Setup installer script
 - `Windows/build.bat` - Build script (PyInstaller -> Inno Setup)
-- `Windows/assets/license.txt` - Freeware EULA shown during installation (also bundled into the install folder as `LICENSE.txt` and inside the PyInstaller archive for runtime display in About dialog)
-- `Windows/assets/THIRD_PARTY_NOTICES.txt` - Open-source attribution for bundled libraries (PySide6, Qt, libVLC, python-vlc, send2trash, OpenSSL, libffi, Python runtime, MS VC Runtime)
-- `LICENSE` (repo root) - Mirror of the freeware EULA for GitHub auto-detection
+- `Windows/assets/license.txt` - MIT license shown during installation (also bundled into the install folder as `LICENSE.txt` and inside the PyInstaller archive for runtime display in About dialog)
+- `Windows/assets/THIRD_PARTY_NOTICES.txt` - Attribution for bundled libraries and runtimes (PySide6, Qt, libVLC, python-vlc, PyInstaller, send2trash, OpenSSL, libffi, Python runtime, MS VC Runtime)
+- `LICENSE` (repo root) - MIT license for GitHub auto-detection
 - `Windows/icon.ico` - Application icon
 
 ## Build & Run
@@ -54,7 +54,7 @@ build.bat                            # Build installer .exe
 - Keyboard navigation (arrow keys, space, delete)
 - Settings persistence (last folder)
 - Crash logging to Desktop
-- Inno Setup installer with EULA, Program Files install, desktop shortcut
+- Inno Setup installer with MIT license text, Program Files install, desktop shortcut
 
 ## Legacy Files
 - `Package.swift` - Swift Package Manager manifest for the macOS SwiftUI version

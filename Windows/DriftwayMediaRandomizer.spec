@@ -3,7 +3,19 @@
 
 import os
 
-_vlc = r'C:\Program Files\VideoLAN\VLC'
+_vlc_candidates = [
+    os.environ.get('VLC_HOME'),
+    r'C:\Program Files\VideoLAN\VLC',
+    r'C:\Program Files (x86)\VideoLAN\VLC',
+]
+_vlc = next(
+    (path for path in _vlc_candidates if path and os.path.exists(os.path.join(path, 'libvlc.dll'))),
+    None,
+)
+if not _vlc:
+    raise FileNotFoundError(
+        'VLC runtime not found. Install VLC or set VLC_HOME to the folder containing libvlc.dll.'
+    )
 _plug = os.path.join(_vlc, 'plugins')
 
 # Only bundle essential plugins for local media playback (~65 MB)
@@ -54,7 +66,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -69,7 +81,7 @@ coll = COLLECT(
     a.binaries,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     name='DriftwayMediaRandomizer',
 )

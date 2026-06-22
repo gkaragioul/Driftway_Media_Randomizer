@@ -55,6 +55,7 @@ enum MediaManagerError: Error, LocalizedError, Equatable {
 
 class MediaManager: ObservableObject {
     private static let randomizationModeDefaultsKey = "randomizationMode"
+    private static let lastFolderDefaultsKey = "lastFolderPath"
     
     @Published var mediaItems: [MediaItem] = []
     @Published var currentIndex: Int = -1
@@ -81,6 +82,21 @@ class MediaManager: ObservableObject {
             randomizationMode = storedMode
         }
     }
+
+    var lastFolderURL: URL? {
+        guard let path = UserDefaults.standard.string(forKey: Self.lastFolderDefaultsKey),
+              !path.isEmpty else {
+            return nil
+        }
+
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory),
+              isDirectory.boolValue else {
+            return nil
+        }
+
+        return URL(fileURLWithPath: path)
+    }
     
     var currentItem: MediaItem? {
         guard currentIndex >= 0 && currentIndex < mediaItems.count else { return nil }
@@ -100,20 +116,15 @@ class MediaManager: ObservableObject {
         scanCount = 0
         lastError = nil
         currentScanURL = url
+        UserDefaults.standard.set(url.path, forKey: Self.lastFolderDefaultsKey)
         
         let didStartAccess = url.startAccessingSecurityScopedResource()
         
-        guard didStartAccess else {
-            DispatchQueue.main.async { [weak self] in
-                self?.isLoading = false
-                self?.lastError = .securityScopeAccessFailed
-            }
-            return
-        }
-        
         let workItem = DispatchWorkItem { [weak self] in
             defer {
-                url.stopAccessingSecurityScopedResource()
+                if didStartAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
             }
             
             guard let self = self else { return }

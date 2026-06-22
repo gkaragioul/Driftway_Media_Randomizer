@@ -3,11 +3,11 @@ Driftway Media Randomizer - Third-Party Notices
 
 This software incorporates components from the projects listed below. The
 original copyright notices and the licenses under which the author received
-such components are set forth here. The restrictions in the Driftway Media Randomizer
-freeware EULA apply only to the original portions of the Software authored by
-George Karagioules; the components below retain their own licenses.
+such components are set forth here. Driftway Media Randomizer source code and
+original project assets are licensed under the MIT License; the components
+below retain their own licenses.
 
-Last updated: 2026-05-07.
+Last updated: 2026-06-22.
 
 ----------------------------------------------------------------------------
 1. PySide6 (Qt for Python) and shiboken6
@@ -60,7 +60,18 @@ Last updated: 2026-05-07.
    corresponding source code is available at the project URL above.
 
 ----------------------------------------------------------------------------
-5. send2trash
+5. PyInstaller bootloader
+   License: GNU GPL-2.0-or-later with bootloader exception
+   Copyright (c) PyInstaller Development Team and contributors.
+   Project: https://pyinstaller.org/
+   License: https://pyinstaller.org/en/stable/license.html
+
+   PyInstaller is used to package the Windows app. Its bootloader exception
+   permits distributing the generated application without imposing GPL terms
+   on Driftway Media Randomizer's own source code.
+
+----------------------------------------------------------------------------
+6. send2trash
    License: BSD 3-Clause License
    Copyright (c) 2017, Virgil Dupras.
    Project: https://github.com/arsenetar/send2trash
@@ -92,7 +103,7 @@ Last updated: 2026-05-07.
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------------
-6. Python (CPython runtime)
+7. Python (CPython runtime)
    License: Python Software Foundation License Version 2 (PSF-2.0)
    Copyright (c) 2001-2026 Python Software Foundation. All rights reserved.
    Project: https://www.python.org/
@@ -106,7 +117,7 @@ Last updated: 2026-05-07.
    https://www.python.org/downloads/source/.
 
 ----------------------------------------------------------------------------
-7. OpenSSL (libssl-3.dll, libcrypto-3.dll)
+8. OpenSSL (libssl-3.dll, libcrypto-3.dll)
    License: Apache License 2.0
    Copyright (c) 1998-2026 The OpenSSL Project Authors. All Rights Reserved.
    Project: https://www.openssl.org/
@@ -121,7 +132,7 @@ Last updated: 2026-05-07.
    https://www.openssl.org/source/.
 
 ----------------------------------------------------------------------------
-8. libffi (libffi-8.dll)
+9. libffi (libffi-8.dll)
    License: MIT-style license (libffi license)
    Copyright (c) 1996-2024 Anthony Green, Red Hat, Inc and others.
    Project: https://sourceware.org/libffi/
@@ -149,7 +160,7 @@ Last updated: 2026-05-07.
    distribution and supports Python's ctypes module.
 
 ----------------------------------------------------------------------------
-9. Microsoft Visual C++ Runtime (VCRUNTIME140.dll, VCRUNTIME140_1.dll,
+10. Microsoft Visual C++ Runtime (VCRUNTIME140.dll, VCRUNTIME140_1.dll,
    ucrtbase.dll, MSVCP140.dll)
    License: Microsoft Software License Terms - Visual C++ Redistributable
    Copyright (c) Microsoft Corporation. All rights reserved.

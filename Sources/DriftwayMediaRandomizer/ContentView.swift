@@ -4,7 +4,6 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @StateObject private var mediaManager = MediaManager()
-    @State private var showFolderPicker = false
     @State private var showDeleteConfirmation = false
     @State private var itemToDelete: MediaItem?
     @State private var showErrorAlert = false
@@ -88,7 +87,9 @@ struct ContentView: View {
         .frame(minWidth: 800, minHeight: 600)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
-            // Focus treatment or initial setup if needed
+            if mediaManager.mediaItems.isEmpty, let lastFolderURL = mediaManager.lastFolderURL {
+                mediaManager.startScanning(at: lastFolderURL)
+            }
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             guard let provider = providers.first else { return false }
@@ -145,8 +146,9 @@ struct ContentView: View {
                         window.toggleFullScreen(nil)
                     }
                 case .playPause:
-                    // Play/pause is handled by the video player internally
-                    break
+                    withAnimation {
+                        mediaManager.next()
+                    }
                 default:
                     break
                 }
@@ -286,8 +288,8 @@ struct KeyEventHandlingView: NSViewRepresentable {
                 onKey?(.exitFullscreen)
             case 49: // Space
                 onKey?(.playPause)
-            case 51: // Backspace / Delete
-                if isCommandPressed {
+            case 51, 117: // Backspace / Forward Delete
+                if isCommandPressed || event.keyCode == 117 || event.charactersIgnoringModifiers == "\u{7F}" {
                     onKey?(.deleteItem)
                 } else {
                     super.keyDown(with: event)

@@ -6,7 +6,7 @@ Distributed as Inno Setup installer.
 
 APP_DISPLAY_NAME = "Driftway Media Randomizer"
 APP_INTERNAL_NAME = "DriftwayMediaRandomizer"
-APP_VERSION = "2.3.1"
+APP_VERSION = "2.3.2"
 
 import sys
 import os

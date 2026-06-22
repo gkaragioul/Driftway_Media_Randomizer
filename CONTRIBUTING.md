@@ -1,6 +1,6 @@
 # Contributing
 
-Driftway Media Randomizer is proprietary freeware. Public issue reports, reproducible bug reports, and compatibility notes are welcome, but code redistribution, forks for redistribution, and commercial resale require prior written permission from George Karagioules.
+Driftway Media Randomizer source code and original project assets are MIT-licensed. Issues, reproducible bug reports, compatibility notes, forks, and pull requests are welcome under the repository's MIT License.
 
 ## Helpful Reports
 
@@ -12,4 +12,4 @@ Driftway Media Randomizer is proprietary freeware. Public issue reports, reprodu
 
 ## Security Or Licensing Reports
 
-Do not post private media, personal file paths, or sensitive files in public issues. For licensing, redistribution, or sensitive reports, open an issue on GitHub (leave out anything private).
+Do not post private media, personal file paths, or sensitive files in public issues. For sensitive reports or license questions about bundled third-party components, open an issue on GitHub (leave out anything private).
