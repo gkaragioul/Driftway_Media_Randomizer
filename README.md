@@ -23,6 +23,12 @@ https://github.com/user-attachments/assets/c58bc261-bf07-49f2-8623-7cc61c7228aa
 
 </div>
 
+<p align="center">
+  <a href="https://buymeacoffee.com/gkaragioul"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me a Coffee"></a><br>
+  <sub>Free to download and use. Tips are voluntary and don't buy support or a warranty.</sub>
+</p>
+
+
 ## Features
 
 ### Media Playback
