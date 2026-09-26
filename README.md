@@ -34,7 +34,7 @@ https://github.com/user-attachments/assets/c58bc261-bf07-49f2-8623-7cc61c7228aa
 
 ### Workflow
 - **Keyboard navigation**: Use right arrow, left arrow, and spacebar for fast browsing.
-- **Recoverable deletion**: Delete moves the current file to the Recycle Bin.
+- **Recoverable deletion**: Delete asks first, then moves the current file to the Recycle Bin.
 - **Session memory**: Remembers the last selected folder between launches.
 - **Simple Windows installer**: Inno Setup installer creates desktop and Start Menu shortcuts.
 - **No update prompts**: The app does not check GitHub or offer automatic updates.
@@ -51,7 +51,7 @@ https://github.com/user-attachments/assets/c58bc261-bf07-49f2-8623-7cc61c7228aa
 1. Launch Driftway Media Randomizer.
 2. Click **Open Folder** to choose a folder with images and videos.
 3. Use arrow keys or spacebar to navigate.
-4. Press **Delete** to move the current file to the Recycle Bin.
+4. Press **Delete** and confirm to move the current file to the Recycle Bin.
 
 ## Keyboard Controls
 
@@ -60,7 +60,7 @@ https://github.com/user-attachments/assets/c58bc261-bf07-49f2-8623-7cc61c7228aa
 | **Right Arrow** | Next media |
 | **Left Arrow** | Previous media |
 | **Space** | Next media |
-| **Delete** | Move current file to the Recycle Bin |
+| **Delete** | Move current file to the Recycle Bin (asks first) |
 
 ## Requirements
 
@@ -85,7 +85,7 @@ The Windows release build creates the installer under `Windows/dist-installer/`.
 
 Driftway Media Randomizer is provided as is, without warranty of any kind, under the [MIT License](LICENSE). Use it at your own risk; you are responsible for the files you delete with it.
 
-On Windows, **Delete** moves the current file to the Recycle Bin straight away, without asking first; the macOS app asks before moving a file to the Trash. If you run the Windows source without `send2trash` installed, Delete removes the file permanently instead.
+**Delete** asks before moving the current file to the Recycle Bin (Windows, from version 2.3.3) or the Trash (macOS). Windows versions up to 2.3.2 delete straight away without asking. If you run the Windows source without `send2trash` installed, there is no Recycle Bin fallback: the app warns you and then deletes the file permanently.
 
 ## License
 

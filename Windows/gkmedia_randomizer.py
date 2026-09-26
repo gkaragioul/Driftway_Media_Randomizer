@@ -6,7 +6,7 @@ Distributed as Inno Setup installer.
 
 APP_DISPLAY_NAME = "Driftway Media Randomizer"
 APP_INTERNAL_NAME = "DriftwayMediaRandomizer"
-APP_VERSION = "2.3.2"
+APP_VERSION = "2.3.3"
 
 import sys
 import os
@@ -662,13 +662,29 @@ class DriftwayMediaRandomizerApp(QMainWindow):
         item = self.media_items[self.current_index]
         try:
             import send2trash
-            send2trash.send2trash(str(item.path))
         except ImportError:
-            try:
+            send2trash = None
+        if send2trash is not None:
+            title = "Move to Recycle Bin?"
+            question = f"Move '{item.path.name}' to the Recycle Bin?"
+        else:
+            title = "Delete permanently?"
+            question = (
+                f"The Recycle Bin is not available, so '{item.path.name}' will be deleted "
+                "permanently. This cannot be undone.\n\nDelete it?"
+            )
+        answer = QMessageBox.question(
+            self, title, question,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            if send2trash is not None:
+                send2trash.send2trash(str(item.path))
+            else:
                 os.remove(str(item.path))
-            except Exception as e:
-                QMessageBox.critical(self, "Delete Failed", f"Could not delete file:\n{e}")
-                return
         except Exception as e:
             QMessageBox.critical(self, "Delete Failed", f"Could not delete file:\n{e}")
             return
