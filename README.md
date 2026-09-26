@@ -81,6 +81,12 @@ build.bat
 
 The Windows release build creates the installer under `Windows/dist-installer/`.
 
+## Disclaimer
+
+Driftway Media Randomizer is provided as is, without warranty of any kind, under the [MIT License](LICENSE). Use it at your own risk; you are responsible for the files you delete with it.
+
+On Windows, **Delete** moves the current file to the Recycle Bin straight away, without asking first; the macOS app asks before moving a file to the Trash. If you run the Windows source without `send2trash` installed, Delete removes the file permanently instead.
+
 ## License
 
 Driftway Media Randomizer source code and original project assets are released under the [MIT License](LICENSE).
